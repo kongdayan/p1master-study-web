@@ -26,12 +26,20 @@ http://localhost:8765
 
 ## 部署
 
-这是纯静态站点，可部署到 Cloudflare Pages、GitHub Pages、Netlify、Vercel 或任意静态文件服务器。
+线上地址：
 
-Cloudflare Pages 示例：
+```text
+https://p1.hunao.online
+```
+
+这是纯静态站点，可部署到 Cloudflare Workers 静态资源、Cloudflare Pages、GitHub Pages、Netlify、Vercel 或任意静态文件服务器。
+
+当前部署使用 Cloudflare Workers 静态资源加自定义域名：
 
 ```bash
-wrangler pages deploy . --project-name p1master-study-web
+mkdir -p /tmp/p1master-study-web-dist
+cp index.html study-outline.md README.md /tmp/p1master-study-web-dist/
+wrangler deploy --config /tmp/p1-worker-wrangler.toml --assets /tmp/p1master-study-web-dist --domain p1.hunao.online
 ```
 
 ## 内容说明
