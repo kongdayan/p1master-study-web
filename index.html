@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>试卷一：保险原理及实务知识图谱</title>
+  <title>IIQE 试卷一：保险原理及实务刷题与知识图谱</title>
   <style>
     :root {
       --ink: #17212b;
@@ -640,6 +640,17 @@
       gap: 8px;
     }
 
+    .practice-storage-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .practice-storage-row .mode-button {
+      box-shadow: none;
+    }
+
     .practice-view .detail h2 {
       font-size: 28px;
     }
@@ -858,8 +869,8 @@
   <div class="app">
     <header>
       <div class="title">
-        <h1>试卷一：保险原理及实务知识图谱</h1>
-        <p>基于 p1master.pdf 与已整理 Markdown 提纲生成，适合按章节、考点和易错点交互复习。</p>
+        <h1>IIQE 试卷一：保险原理及实务</h1>
+        <p>面向香港保险中介人资格考试（IIQE）Paper 1 的学习工具，覆盖风险、法律原则、保险原则、香港保险业结构、规管架构与职业道德。</p>
         <nav class="top-nav" aria-label="主功能">
           <button class="tab-button active" data-mode="map">知识图谱</button>
           <button class="tab-button" data-mode="outline">大纲</button>
@@ -933,12 +944,12 @@
 
     const nodeDetails = {
       root: {
-        title: "试卷一：保险原理及实务",
+        title: "IIQE 试卷一：保险原理及实务",
         chapter: "总览",
         weight: "100%",
         frequency: "75 题",
-        summary: "考试时间 2 小时，共 75 条选择题，答对 53 题达到 70% 合格线。",
-        bullets: ["复习优先级：第 3 章、第 6 章、第 2 章、第 1 章、第 4 章、第 7 章、第 5 章。", "资料来源为 p1master.pdf 的模拟试题及答案整理版。", "使用时建议先按章节权重，再用图谱追踪相关原则之间的关系。"],
+        summary: "香港保险中介人资格考试（IIQE）Paper 1，对应 Principles and Practice of Insurance Examination。考试时间 2 小时，共 75 条选择题，答对 53 题达到 70% 合格线。",
+        bullets: ["复习优先级：第 3 章、第 6 章、第 2 章、第 1 章、第 4 章、第 7 章、第 5 章。", "核心范围：风险及保险、法律原则、保险原则、保险公司的主要功能、香港保险业结构、规管架构、职业道德及相关问题。", "使用时建议先按章节权重，再用图谱追踪相关原则之间的关系。"],
         mistakes: ["不要平均分配复习时间；第 3 章占比最高。", "若用于真实应考，请核对最新监管制度。"]
       },
       c1: {
@@ -993,7 +1004,7 @@
         frequency: "约 16 题",
         summary: "第二高权重章节。重点是保险业条例、承保商专业守则、投诉机制与中介人规管。",
         bullets: ["《保险业条例》规管保险人授权、财务要求、适当人选及市场秩序。", "承保商专业守则涉及核保、产品、索偿等良好保险做法。", "保险投诉局提供个人保险合约相关金钱性质纠纷的替代解决机制。", "保险代理人代表一名或多名保险人；保险经纪代表客户。"],
-        mistakes: ["保险索偿投诉局已在 PDF 提示中改名为保险投诉局。", "代理人与经纪的法定角色不要混淆。", "真实应考前应核对最新监管制度。"]
+        mistakes: ["注意使用保险投诉局的现行名称与职责表述。", "代理人与经纪的法定角色不要混淆。", "真实应考前应核对最新监管制度。"]
       },
       c7: {
         title: "第 7 章：职业道德及其他有关问题",
@@ -1208,7 +1219,7 @@
         title: "保险投诉局",
         chapter: "6.1.4",
         summary: "提供替代纠纷解决机制，处理个人保险合约引起且属金钱性质的纠纷。",
-        bullets: ["PDF 提示保险索偿投诉局已于 2018 年 1 月 16 日起改名为保险投诉局。"],
+        bullets: ["复习时使用保险投诉局的现行名称，并留意其替代纠纷解决机制定位。"],
         mistakes: ["复习时不要继续使用旧名称作为正式答案。"]
       },
       intermediary_regulation: {
@@ -1263,7 +1274,7 @@
     };
 
     const nodes = [
-      { id: "root", label: "试卷一", type: "root", group: "root", size: 34, x: 0, y: 0 },
+      { id: "root", label: "IIQE P1", type: "root", group: "root", size: 34, x: 0, y: 0 },
       { id: "c1", label: "风险及保险", sub: "12%", type: "chapter", group: "c1", size: 25, x: -210, y: -200 },
       { id: "c2", label: "法律原则", sub: "16%", type: "chapter", group: "c2", size: 27, x: 120, y: -235 },
       { id: "c3", label: "保险原则", sub: "30%", type: "chapter", group: "c3", size: 32, x: 260, y: -25 },
@@ -1367,13 +1378,60 @@
     let mode = "map";
     let quizIndex = 0;
     let showAnswer = false;
-    let practiceState = {
+    const STORAGE_KEYS = {
+      checklist: "iiqePaper1ChecklistV1",
+      wrong: "iiqePaper1WrongQuestionsV1",
+      practice: "iiqePaper1PracticeStateV1",
+      history: "iiqePaper1AnswerHistoryV1"
+    };
+    const DEFAULT_PRACTICE_STATE = {
       chapter: "all",
       query: "",
       wrongOnly: false,
       index: 0,
       selected: null,
-      revealed: false
+      revealed: false,
+      hiddenAnswers: {}
+    };
+
+    function readStorage(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch (error) {
+        return fallback;
+      }
+    }
+
+    function writeStorage(key, value) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function hasStorageValue(key) {
+      try {
+        return localStorage.getItem(key) !== null;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function migrateStorage() {
+      const oldWrong = readStorage("p1masterWrongQuestions", null);
+      if (oldWrong && !hasStorageValue(STORAGE_KEYS.wrong)) writeStorage(STORAGE_KEYS.wrong, oldWrong);
+      const oldChecklist = readStorage("p1masterChecklist", null);
+      if (oldChecklist && !hasStorageValue(STORAGE_KEYS.checklist)) writeStorage(STORAGE_KEYS.checklist, oldChecklist);
+    }
+
+    migrateStorage();
+
+    let practiceState = {
+      ...DEFAULT_PRACTICE_STATE,
+      ...readStorage(STORAGE_KEYS.practice, {})
     };
     let practiceSearchTimer = null;
 
@@ -1600,7 +1658,7 @@
           <h3>复习进度</h3>
           <div class="progress-list">${renderChecklist()}</div>
         </div>
-        <p class="source-note">来源：p1master.pdf 与 p1master-study-outline.md。PDF 版本为 2018 年 11 月版，真实应考前请核对最新监管制度。</p>
+        <p class="source-note">内容定位：香港保险中介人资格考试（IIQE）试卷一 / Paper 1：Principles and Practice of Insurance。真实应考前请核对最新考试手册与监管要求。</p>
       `;
       bindChecklist();
     }
@@ -1709,7 +1767,7 @@
     }
 
     function renderChecklist() {
-      const saved = JSON.parse(localStorage.getItem("p1masterChecklist") || "{}");
+      const saved = readStorage(STORAGE_KEYS.checklist, {});
       return checklist.map((item, index) => {
         const checked = Boolean(saved[index]);
         return `
@@ -1724,9 +1782,9 @@
     function bindChecklist() {
       detailPanel.querySelectorAll("[data-check]").forEach(input => {
         input.addEventListener("change", () => {
-          const saved = JSON.parse(localStorage.getItem("p1masterChecklist") || "{}");
+          const saved = readStorage(STORAGE_KEYS.checklist, {});
           saved[input.dataset.check] = input.checked;
-          localStorage.setItem("p1masterChecklist", JSON.stringify(saved));
+          writeStorage(STORAGE_KEYS.checklist, saved);
           input.nextElementSibling.classList.toggle("done", input.checked);
         });
       });
@@ -1769,11 +1827,94 @@
     }
 
     function getWrongStore() {
-      return JSON.parse(localStorage.getItem("p1masterWrongQuestions") || "{}");
+      return readStorage(STORAGE_KEYS.wrong, {});
     }
 
     function setWrongStore(store) {
-      localStorage.setItem("p1masterWrongQuestions", JSON.stringify(store));
+      writeStorage(STORAGE_KEYS.wrong, store);
+    }
+
+    function getAnswerHistory() {
+      return readStorage(STORAGE_KEYS.history, {});
+    }
+
+    function setAnswerHistory(history) {
+      writeStorage(STORAGE_KEYS.history, history);
+    }
+
+    function savePracticeState() {
+      practiceState.index = Math.max(0, Number(practiceState.index) || 0);
+      writeStorage(STORAGE_KEYS.practice, practiceState);
+    }
+
+    function recordAnswer(question, selected) {
+      const history = getAnswerHistory();
+      history[question.id] = {
+        selected,
+        answer: question.answer,
+        correct: selected === question.answer,
+        chapter: question.chapter,
+        ref: question.ref,
+        updatedAt: new Date().toISOString()
+      };
+      setAnswerHistory(history);
+    }
+
+    function getProgressStats() {
+      const history = Object.values(getAnswerHistory());
+      const answered = history.length;
+      const correct = history.filter(item => item.correct).length;
+      const rate = answered ? Math.round((correct / answered) * 100) : 0;
+      return { answered, correct, rate };
+    }
+
+    function resetProgressData() {
+      practiceState = { ...DEFAULT_PRACTICE_STATE };
+      setWrongStore({});
+      setAnswerHistory({});
+      savePracticeState();
+    }
+
+    function exportProgressData() {
+      const payload = {
+        version: 1,
+        app: "iiqe-paper1-study-web",
+        exportedAt: new Date().toISOString(),
+        practiceState,
+        wrongQuestions: getWrongStore(),
+        answerHistory: getAnswerHistory(),
+        checklist: readStorage(STORAGE_KEYS.checklist, {})
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "iiqe-paper1-study-progress.json";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function importProgressData(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        try {
+          const payload = JSON.parse(reader.result);
+          practiceState = {
+            ...DEFAULT_PRACTICE_STATE,
+            ...(payload.practiceState || {})
+          };
+          setWrongStore(payload.wrongQuestions || payload.wrongStore || {});
+          setAnswerHistory(payload.answerHistory || {});
+          writeStorage(STORAGE_KEYS.checklist, payload.checklist || {});
+          savePracticeState();
+          renderPractice();
+        } catch (error) {
+          window.alert("导入失败，请确认文件是从本页面导出的学习记录。");
+        }
+      });
+      reader.readAsText(file);
     }
 
     function chapterLabel(chapter) {
@@ -1834,18 +1975,23 @@
       const wrongStore = getWrongStore();
       const filtered = getPracticeQuestions();
       if (practiceState.index >= filtered.length) practiceState.index = 0;
+      if (practiceState.index < 0) practiceState.index = 0;
+      savePracticeState();
       const question = filtered[practiceState.index] || null;
       const chapterCounts = questionBank.reduce((acc, item) => {
         acc[item.chapter] = (acc[item.chapter] || 0) + 1;
         return acc;
       }, {});
       const wrongCount = Object.keys(wrongStore).length;
+      const progress = getProgressStats();
 
       detailPanel.innerHTML = `
         <h2>刷题模式</h2>
         <div class="meta">
           <span class="tag">题库 ${questionBank.length} 题</span>
           <span class="tag">当前 ${filtered.length} 题</span>
+          <span class="tag">已做 ${progress.answered} 题</span>
+          <span class="tag">正确率 ${progress.rate}%</span>
           <span class="tag">错题 ${wrongCount} 题</span>
         </div>
         <div class="detail-block practice-controls">
@@ -1858,15 +2004,23 @@
             <input type="checkbox" id="wrongOnly" ${practiceState.wrongOnly ? "checked" : ""}>
             <span>只看错题本</span>
           </label>
+          <div class="practice-storage-row">
+            <button class="mode-button" id="exportProgress">导出记录</button>
+            <button class="mode-button" id="importProgress">导入记录</button>
+            <button class="mode-button" id="clearProgress">清空进度</button>
+            <input class="hidden" id="importProgressFile" type="file" accept="application/json">
+          </div>
         </div>
         ${question ? renderQuestionCard(question, filtered.length, wrongStore) : renderEmptyPractice()}
-        <p class="source-note">题目由 p1master.pdf 的题库文本抽取并结构化，共 ${questionBank.length} 条完整选择题。原题为繁体中文，已尽量保留原文。</p>
+        <p class="source-note">题库共 ${questionBank.length} 条选择题，覆盖 IIQE 试卷一常见章节。刷题进度、答题记录和错题本会保存在当前浏览器；换设备时可用“导出记录 / 导入记录”迁移。</p>
       `;
       bindPracticeEvents(filtered);
     }
 
     function renderQuestionCard(question, total, wrongStore) {
-      const selected = practiceState.selected;
+      const hiddenAnswers = practiceState.hiddenAnswers || {};
+      const savedAnswer = hiddenAnswers[question.id] ? null : getAnswerHistory()[question.id];
+      const selected = practiceState.selected ?? savedAnswer?.selected ?? null;
       const answered = selected !== null || practiceState.revealed;
       const correct = selected === question.answer;
       const answerOption = question.options.find(option => option.letter === question.answer);
@@ -1904,7 +2058,7 @@
             <button class="mode-button" id="prevQuestion">上一题</button>
             <button class="mode-button" id="nextQuestion">下一题</button>
             <button class="mode-button" id="randomQuestion">随机题</button>
-            <button class="mode-button" id="revealAnswer">${practiceState.revealed ? "隐藏答案" : "显示答案"}</button>
+            <button class="mode-button" id="revealAnswer">${answered ? "隐藏答案" : "显示答案"}</button>
             <button class="mode-button" id="toggleWrong">${wrongStore[question.id] ? "移出错题本" : "加入错题本"}</button>
           </div>
         </div>
@@ -1931,6 +2085,7 @@
           practiceState.chapter = button.dataset.practiceChapter;
           practiceState.index = 0;
           resetPracticeAnswer();
+          savePracticeState();
           renderPractice();
         });
       });
@@ -1940,6 +2095,7 @@
           practiceState.query = search.value;
           practiceState.index = 0;
           resetPracticeAnswer();
+          savePracticeState();
           window.clearTimeout(practiceSearchTimer);
           practiceSearchTimer = window.setTimeout(renderPractice, 220);
         });
@@ -1950,6 +2106,7 @@
           practiceState.wrongOnly = wrongOnly.checked;
           practiceState.index = 0;
           resetPracticeAnswer();
+          savePracticeState();
           renderPractice();
         });
       }
@@ -1959,6 +2116,9 @@
           if (!question) return;
           practiceState.selected = button.dataset.answer;
           practiceState.revealed = true;
+          if (!practiceState.hiddenAnswers) practiceState.hiddenAnswers = {};
+          delete practiceState.hiddenAnswers[question.id];
+          recordAnswer(question, practiceState.selected);
           const wrongStore = getWrongStore();
           if (practiceState.selected !== question.answer) {
             wrongStore[question.id] = true;
@@ -1966,6 +2126,7 @@
             delete wrongStore[question.id];
           }
           setWrongStore(wrongStore);
+          savePracticeState();
           renderPractice();
         });
       });
@@ -1973,24 +2134,39 @@
       if (prev) prev.addEventListener("click", () => {
         practiceState.index = (practiceState.index + filtered.length - 1) % filtered.length;
         resetPracticeAnswer();
+        savePracticeState();
         renderPractice();
       });
       const next = document.getElementById("nextQuestion");
       if (next) next.addEventListener("click", () => {
         practiceState.index = (practiceState.index + 1) % filtered.length;
         resetPracticeAnswer();
+        savePracticeState();
         renderPractice();
       });
       const random = document.getElementById("randomQuestion");
       if (random) random.addEventListener("click", () => {
         practiceState.index = Math.floor(Math.random() * filtered.length);
         resetPracticeAnswer();
+        savePracticeState();
         renderPractice();
       });
       const reveal = document.getElementById("revealAnswer");
       if (reveal) reveal.addEventListener("click", () => {
-        practiceState.revealed = !practiceState.revealed;
-        if (!practiceState.revealed) practiceState.selected = null;
+        const question = filtered[practiceState.index];
+        if (!question) return;
+        const savedAnswer = getAnswerHistory()[question.id];
+        const isShowing = practiceState.revealed || practiceState.selected !== null || Boolean(savedAnswer && !practiceState.hiddenAnswers?.[question.id]);
+        if (!practiceState.hiddenAnswers) practiceState.hiddenAnswers = {};
+        if (isShowing) {
+          practiceState.revealed = false;
+          practiceState.selected = null;
+          practiceState.hiddenAnswers[question.id] = true;
+        } else {
+          practiceState.revealed = true;
+          delete practiceState.hiddenAnswers[question.id];
+        }
+        savePracticeState();
         renderPractice();
       });
       const toggleWrong = document.getElementById("toggleWrong");
@@ -2001,6 +2177,20 @@
         if (wrongStore[question.id]) delete wrongStore[question.id];
         else wrongStore[question.id] = true;
         setWrongStore(wrongStore);
+        renderPractice();
+      });
+      const exportButton = document.getElementById("exportProgress");
+      if (exportButton) exportButton.addEventListener("click", exportProgressData);
+      const importButton = document.getElementById("importProgress");
+      const importInput = document.getElementById("importProgressFile");
+      if (importButton && importInput) {
+        importButton.addEventListener("click", () => importInput.click());
+        importInput.addEventListener("change", () => importProgressData(importInput.files?.[0]));
+      }
+      const clearProgress = document.getElementById("clearProgress");
+      if (clearProgress) clearProgress.addEventListener("click", () => {
+        if (!window.confirm("确定清空当前浏览器里的刷题进度、答题记录和错题本吗？")) return;
+        resetProgressData();
         renderPractice();
       });
       detailPanel.querySelectorAll("[data-open-node]").forEach(button => {
