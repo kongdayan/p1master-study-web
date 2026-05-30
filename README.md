@@ -1,6 +1,6 @@
 # P1 Master Study Web
 
-一个面向香港保险中介人资格考试（Insurance Intermediaries Qualifying Examination, IIQE）试卷一 / Paper 1：Principles and Practice of Insurance 的单页静态学习工具。
+一个使用 React、TypeScript、Tailwind CSS 构建的 IIQE 试卷一学习工具，面向香港保险中介人资格考试（Insurance Intermediaries Qualifying Examination, IIQE）Paper 1：Principles and Practice of Insurance。
 
 ## 功能
 
@@ -10,19 +10,32 @@
 - 卡片模式：用主动回忆方式复习关键概念。
 - 移动端适配：手机上刷题与大纲是独立 Tab，刷题视图专注显示题目和选项。
 - 学习记录：刷题进度、答题历史、错题本与复习清单会保存在当前浏览器，并支持导出 / 导入 JSON 备份。
+- 数据驱动：题库、章节、知识图谱、卡片和清单都从 `public/data/exams/iiqe-paper1/exam.json` 加载。
+- 组件化：刷题、错题本、知识图谱、大纲、卡片和基础 UI 均已拆分为可复用组件。
+
+## 题库 JSON
+
+题库数据格式见 [docs/question-bank-schema.md](docs/question-bank-schema.md)。新增其他考试时，建议复制 `public/data/exams/iiqe-paper1/exam.json` 的结构，使用新的 `exam.id`、章节、题目和知识图谱数据。
 
 ## 本地预览
 
-直接打开 `index.html` 即可使用。也可以启动一个本地静态服务器：
+安装依赖并启动开发服务器：
 
 ```bash
-python3 -m http.server 8765
+npm install
+npm run dev
 ```
 
 然后访问：
 
 ```text
-http://localhost:8765
+http://127.0.0.1:5173
+```
+
+构建静态文件：
+
+```bash
+npm run build
 ```
 
 ## 部署
@@ -38,9 +51,8 @@ https://p1.hunao.online
 当前部署使用 Cloudflare Workers 静态资源加自定义域名：
 
 ```bash
-mkdir -p /tmp/p1master-study-web-dist
-cp index.html study-outline.md README.md /tmp/p1master-study-web-dist/
-wrangler deploy --config /tmp/p1-worker-wrangler.toml --assets /tmp/p1master-study-web-dist --domain p1.hunao.online
+npm run build
+wrangler deploy --assets dist --domain p1.hunao.online
 ```
 
 ## 内容说明
