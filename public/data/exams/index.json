@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "exam-catalog.v1",
+  "title": "考题大全",
+  "description": "把不同考试的刷题、错题本、大纲和知识图谱放在一个地方。",
+  "exams": [
+    {
+      "id": "iiqe-paper1",
+      "title": "IIQE 试卷一：保险原理及实务",
+      "shortTitle": "IIQE P1",
+      "direction": "香港保险从业 / 保险中介人资格考试",
+      "description": "覆盖风险、法律原则、保险原则、香港保险业结构、规管架构与职业道德。",
+      "questionCount": 913,
+      "durationMinutes": 120,
+      "passingQuestions": 53,
+      "passingScorePercent": 70,
+      "status": "available",
+      "defaultView": "practice"
+    }
+  ]
+}

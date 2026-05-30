@@ -1,17 +1,19 @@
-# P1 Master Study Web
+# Exam Study Hub
 
-一个使用 React、TypeScript、Tailwind CSS 构建的 IIQE 试卷一学习工具，面向香港保险中介人资格考试（Insurance Intermediaries Qualifying Examination, IIQE）Paper 1：Principles and Practice of Insurance。
+一个使用 React、TypeScript、Tailwind CSS 构建的可扩展考试刷题站。当前已上线香港保险中介人资格考试（Insurance Intermediaries Qualifying Examination, IIQE）Paper 1：Principles and Practice of Insurance。
 
 ## 功能
 
+- 考题大全：首页展示不同考试的方向、题量、考试时间、合格线和入口。
 - 知识图谱：按章节展示风险、法律原则、保险原则、监管、职业道德等知识点。
 - 学习大纲：汇总考试结构、章节权重和高频考点。
 - 刷题模式：内置 913 道选择题，支持按章筛选、搜索、显示答案、随机题、错题本和本地进度持久化。
 - 移动端适配：手机上刷题与大纲是独立 Tab，刷题视图专注显示题目和选项。
 - 学习记录：刷题进度、答题历史、错题本与复习清单会保存在当前浏览器，并支持导出 / 导入 JSON 备份。
-- 数据驱动：题库、章节、知识图谱和清单都从 `public/data/exams/iiqe-paper1/exam.json` 加载。
+- 数据驱动：考试列表从 `public/data/exams/index.json` 加载，题库、章节、知识图谱和清单从对应考试的 `exam.json` 加载。
 - 组件化：刷题、错题本、知识图谱、大纲和基础 UI 均已拆分为可复用组件。
 - 可分享 URL：使用 `?exam=iiqe-paper1&view=practice&question=1` 区分考试、页面和题目。
+- 友好兜底：不存在的考试会显示可爱的提示，并引导回考题大全。
 
 ## 题库 JSON
 
@@ -52,7 +54,7 @@ https://exams.hunao.online
 
 ```bash
 npm run build
-wrangler deploy --assets dist --domain exams.hunao.online
+wrangler deploy --domain exams.hunao.online --domain p1.hunao.online
 ```
 
 旧域名 `https://p1.hunao.online` 仍可作为兼容入口。

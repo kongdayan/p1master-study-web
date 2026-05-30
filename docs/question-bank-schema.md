@@ -1,6 +1,19 @@
 # 题库 JSON 数据格式
 
-本项目通过 `public/data/exams/{examId}/exam.json` 加载考试数据。前端只依赖 TypeScript 类型 `ExamData`，因此后续新增其他考试时，可以复用刷题、错题本、导入导出、知识图谱和大纲组件。
+本项目通过 `public/data/exams/index.json` 加载考题大全，通过 `public/data/exams/{examId}/exam.json` 加载单个考试数据。前端只依赖 TypeScript 类型 `ExamCatalogData` 和 `ExamData`，因此后续新增其他考试时，可以复用刷题、错题本、导入导出、知识图谱和大纲组件。
+
+## 考题大全结构
+
+```ts
+interface ExamCatalogData {
+  schemaVersion: "exam-catalog.v1";
+  title: string;
+  description: string;
+  exams: ExamCatalogItem[];
+}
+```
+
+每个 `ExamCatalogItem` 对应首页的一张考试卡片，包含考试方向、题量、考试时间、合格线、上线状态和默认入口。
 
 ## 顶层结构
 

@@ -1,20 +1,24 @@
 import { Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { ExamCatalog } from "@/components/catalog/ExamCatalog";
 import { ExamHeader } from "@/components/layout/ExamHeader";
+import { FriendlyMissingPage } from "@/components/layout/FriendlyMissingPage";
 import { KnowledgeGraph } from "@/components/knowledge/KnowledgeGraph";
 import { OutlineTab } from "@/components/outline/OutlineTab";
 import { PracticeTab } from "@/components/practice/PracticeTab";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useExamCatalog } from "@/hooks/useExamCatalog";
 import { useExamData } from "@/hooks/useExamData";
 import { useStudyProgress } from "@/hooks/useStudyProgress";
 import { buildRouteUrl, parseRoute, type AppRoute, type AppView } from "@/lib/routing";
 import { modulo } from "@/lib/utils";
+import type { ExamCatalogItem } from "@/types/exam";
 
 function App() {
   const [route, setRoute] = useState<AppRoute>(() => parseRoute());
+  const catalog = useExamCatalog();
   const { data, error, loading } = useExamData(route.examId);
-  const progressApi = useStudyProgress(data?.exam.id || route.examId, data?.questions || []);
+  const progressApi = useStudyProgress(data?.exam.id || route.examId || "catalog", data?.questions || []);
 
   const currentQuestionNumber = useMemo(() => {
     if (route.view !== "practice" || !progressApi.filteredQuestions.length) return null;
@@ -50,6 +54,7 @@ function App() {
   }, [data, progressApi, route.questionNumber, route.view]);
 
   useEffect(() => {
+    if (route.view === "catalog") return;
     const nextRoute = {
       examId: route.examId,
       view: route.view,
@@ -61,6 +66,22 @@ function App() {
     }
   }, [currentQuestionNumber, route.examId, route.view]);
 
+  function goHome() {
+    const nextRoute: AppRoute = { examId: null, view: "catalog", questionNumber: null };
+    setRoute(nextRoute);
+    window.history.pushState(null, "", buildRouteUrl(nextRoute));
+  }
+
+  function openExam(exam: ExamCatalogItem) {
+    const nextRoute: AppRoute = {
+      examId: exam.id,
+      view: exam.defaultView,
+      questionNumber: exam.defaultView === "practice" ? 1 : null
+    };
+    setRoute(nextRoute);
+    window.history.pushState(null, "", buildRouteUrl(nextRoute));
+  }
+
   function setView(view: AppView) {
     const nextRoute = {
       examId: route.examId,
@@ -69,6 +90,19 @@ function App() {
     };
     setRoute(nextRoute);
     window.history.pushState(null, "", buildRouteUrl(nextRoute));
+  }
+
+  if (route.view === "catalog") {
+    if (catalog.loading) {
+      return (
+        <main className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          正在整理考题大全...
+        </main>
+      );
+    }
+    if (catalog.error || !catalog.data) return <FriendlyMissingPage onGoHome={goHome} />;
+    return <ExamCatalog catalog={catalog.data} onOpenExam={openExam} />;
   }
 
   if (loading) {
@@ -81,15 +115,7 @@ function App() {
   }
 
   if (error || !data) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-        <Card className="max-w-md">
-          <CardContent className="p-6 text-sm leading-6 text-slate-600">
-            题库加载失败。请刷新页面，或检查 `/data/exams/{route.examId}/exam.json` 是否存在。
-          </CardContent>
-        </Card>
-      </main>
-    );
+    return <FriendlyMissingPage examId={route.examId} onGoHome={goHome} />;
   }
 
   return (

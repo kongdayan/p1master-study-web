@@ -1,25 +1,19 @@
 import { useEffect, useState } from "react";
-import { loadExamData } from "@/services/examLoader";
-import type { ExamData } from "@/types/exam";
+import { loadExamCatalog } from "@/services/examLoader";
+import type { ExamCatalogData } from "@/types/exam";
 
-export function useExamData(examId: string | null) {
-  const [data, setData] = useState<ExamData | null>(null);
+export function useExamCatalog() {
+  const [data, setData] = useState<ExamCatalogData | null>(null);
   const [error, setError] = useState<Error | null>(null);
-  const [loading, setLoading] = useState(Boolean(examId));
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!examId) {
-      setData(null);
-      setError(null);
-      setLoading(false);
-      return;
-    }
     let active = true;
     setLoading(true);
-    loadExamData(examId)
-      .then((examData) => {
+    loadExamCatalog()
+      .then((catalog) => {
         if (active) {
-          setData(examData);
+          setData(catalog);
           setError(null);
         }
       })
@@ -33,7 +27,7 @@ export function useExamData(examId: string | null) {
     return () => {
       active = false;
     };
-  }, [examId]);
+  }, []);
 
   return { data, error, loading };
 }

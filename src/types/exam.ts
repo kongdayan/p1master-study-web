@@ -101,3 +101,24 @@ export interface ExamData {
   flashcards: Flashcard[];
   checklist: ChecklistItem[];
 }
+
+export interface ExamCatalogItem {
+  id: string;
+  title: string;
+  shortTitle: string;
+  direction: string;
+  description: string;
+  questionCount: number;
+  durationMinutes: number;
+  passingQuestions: number;
+  passingScorePercent: number;
+  status: "available" | "coming-soon";
+  defaultView: "practice" | "outline" | "map";
+}
+
+export interface ExamCatalogData {
+  schemaVersion: "exam-catalog.v1";
+  title: string;
+  description: string;
+  exams: ExamCatalogItem[];
+}
