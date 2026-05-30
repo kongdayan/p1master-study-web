@@ -120,7 +120,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <ExamHeader exam={data.exam} questionCount={data.questions.length} />
+      <ExamHeader exam={data.exam} questionCount={data.questions.length} showStats={route.view !== "outline"} />
       <main className="mx-auto max-w-7xl px-4 py-5">
         <Tabs value={route.view} onValueChange={(value) => setView(value as AppView)} className="grid gap-4">
           <TabsList className="w-full justify-start overflow-x-auto md:w-auto">
@@ -148,13 +148,7 @@ function App() {
             <OutlineTab exam={data.exam} chapters={data.chapters} graph={data.knowledge} questions={data.questions} />
           </TabsContent>
           <TabsContent value="map">
-            <KnowledgeGraph
-              graph={data.knowledge}
-              chapters={data.chapters}
-              checklist={data.checklist}
-              checked={progressApi.progress.checklist}
-              onChecklistChange={progressApi.setChecklistItem}
-            />
+            <KnowledgeGraph graph={data.knowledge} chapters={data.chapters} />
           </TabsContent>
         </Tabs>
       </main>

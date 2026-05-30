@@ -4,23 +4,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ChecklistPanel } from "@/components/layout/ChecklistPanel";
-import type { Chapter, ChecklistItem, KnowledgeGraphData } from "@/types/exam";
+import type { Chapter, KnowledgeGraphData } from "@/types/exam";
 
 interface KnowledgeGraphProps {
   graph: KnowledgeGraphData;
   chapters: Chapter[];
-  checklist: ChecklistItem[];
-  checked: Record<string, boolean>;
-  onChecklistChange: (id: string, checked: boolean) => void;
 }
 
-export function KnowledgeGraph({ graph, chapters, checklist, checked, onChecklistChange }: KnowledgeGraphProps) {
+export function KnowledgeGraph({ graph, chapters }: KnowledgeGraphProps) {
   const [selectedId, setSelectedId] = useState("root");
   const [activeChapter, setActiveChapter] = useState("all");
   const [query, setQuery] = useState("");
   const [scale, setScale] = useState(1);
 
+  const chapterOrder = useMemo(() => chapters.slice().sort((a, b) => Number(a.id) - Number(b.id)), [chapters]);
   const nodeById = useMemo(() => new Map(graph.nodes.map((node) => [node.id, node])), [graph.nodes]);
   const neighbors = useMemo(() => {
     const map = new Map(graph.nodes.map((node) => [node.id, new Set<string>()]));
@@ -73,7 +70,7 @@ export function KnowledgeGraph({ graph, chapters, checklist, checked, onChecklis
         <Card>
           <CardHeader>
             <CardTitle>章节</CardTitle>
-            <CardDescription>按权重筛选知识图谱。</CardDescription>
+            <CardDescription>按章节筛选知识图谱。</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-2">
             <Button
@@ -83,22 +80,19 @@ export function KnowledgeGraph({ graph, chapters, checklist, checked, onChecklis
             >
               全部知识点
             </Button>
-            {chapters
-              .slice()
-              .sort((a, b) => a.priority - b.priority)
-              .map((chapter) => (
-                <Button
-                  key={chapter.id}
-                  variant={activeChapter === chapter.nodeId ? "default" : "outline"}
-                  className="h-auto justify-start whitespace-normal py-2 text-left"
-                  onClick={() => focusChapter(chapter.nodeId)}
-                >
-                  <span>
-                    {chapter.title}
-                    <span className="block text-xs font-medium opacity-75">{chapter.weight} · {chapter.estimatedQuestions} 题</span>
-                  </span>
-                </Button>
-              ))}
+            {chapterOrder.map((chapter) => (
+              <Button
+                key={chapter.id}
+                variant={activeChapter === chapter.nodeId ? "default" : "outline"}
+                className="h-auto justify-start whitespace-normal py-2 text-left"
+                onClick={() => focusChapter(chapter.nodeId)}
+              >
+                <span>
+                  {chapter.title}
+                  <span className="block text-xs font-medium opacity-75">{chapter.weight} · {chapter.estimatedQuestions} 题</span>
+                </span>
+              </Button>
+            ))}
           </CardContent>
         </Card>
       </aside>
@@ -224,14 +218,6 @@ export function KnowledgeGraph({ graph, chapters, checklist, checked, onChecklis
                 </ul>
               </div>
             ) : null}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>复习进度</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChecklistPanel items={checklist} checked={checked} onChange={onChecklistChange} />
           </CardContent>
         </Card>
       </aside>
