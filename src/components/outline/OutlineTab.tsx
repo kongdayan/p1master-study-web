@@ -84,22 +84,6 @@ export function OutlineTab({ exam, chapters, graph, questions }: OutlineTabProps
           })}
       </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>七天复习安排</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ol className="grid list-decimal gap-2 pl-5 text-sm leading-6 text-slate-600">
-            <li>第 1 章 + 第 5 章：建立基础概念，完成低权重章节。</li>
-            <li>第 2 章合约法：背熟简单合约要素与例子。</li>
-            <li>第 2 章代理法：掌握代理权限、责任、终止。</li>
-            <li>第 3 章上半：可保权益、最高诚信、近因。</li>
-            <li>第 3 章下半：彌偿、分担、代位。</li>
-            <li>第 4、6、7 章：部门职责、监管机构、合规问题。</li>
-            <li>75 题 / 2 小时模拟训练，错题回到刷题模式复盘。</li>
-          </ol>
-        </CardContent>
-      </Card>
     </div>
   );
 }
