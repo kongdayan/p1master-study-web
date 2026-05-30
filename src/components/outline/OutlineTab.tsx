@@ -1,5 +1,4 @@
-import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Chapter, ExamMeta, KnowledgeGraphData, Question } from "@/types/exam";
 
@@ -11,37 +10,24 @@ interface OutlineTabProps {
 }
 
 export function OutlineTab({ exam, chapters, graph, questions }: OutlineTabProps) {
-  const [sortMode, setSortMode] = useState<"chapter" | "priority">("chapter");
   const chapterCounts = questions.reduce<Record<string, number>>((acc, question) => {
     acc[question.chapterId] = (acc[question.chapterId] || 0) + 1;
     return acc;
   }, {});
-  const sortedChapters = useMemo(
-    () =>
-      chapters
-        .slice()
-        .sort((a, b) => (sortMode === "priority" ? a.priority - b.priority : Number(a.id) - Number(b.id))),
-    [chapters, sortMode]
-  );
 
   return (
     <div className="grid gap-4">
+      <section className="grid gap-3 md:grid-cols-4">
+        <Badge className="justify-center py-2">{exam.passing.questions} 题考试</Badge>
+        <Badge className="justify-center py-2">{exam.passing.durationMinutes} 分钟</Badge>
+        <Badge className="justify-center py-2">{exam.passing.passingScorePercent}% 合格</Badge>
+        <Badge className="justify-center py-2">题库 {questions.length} 题</Badge>
+      </section>
+
       <Card>
         <CardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <CardTitle>章节权重与刷题数量</CardTitle>
-              <CardDescription>{exam.title}</CardDescription>
-            </div>
-            <div className="flex rounded-lg border border-slate-200 bg-white p-1">
-              <Button size="sm" variant={sortMode === "chapter" ? "default" : "ghost"} onClick={() => setSortMode("chapter")}>
-                按章节
-              </Button>
-              <Button size="sm" variant={sortMode === "priority" ? "default" : "ghost"} onClick={() => setSortMode("priority")}>
-                按优先级
-              </Button>
-            </div>
-          </div>
+          <CardTitle>章节权重与刷题数量</CardTitle>
+          <CardDescription>后续更换考试时，只要替换 JSON 数据包即可复用这套展示。</CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
@@ -56,41 +42,48 @@ export function OutlineTab({ exam, chapters, graph, questions }: OutlineTabProps
               </tr>
             </thead>
             <tbody>
-              {sortedChapters.map((chapter) => (
-                <tr key={chapter.id} className="border-b last:border-0">
-                  <td className="py-3 pr-3 font-semibold">{chapter.priority}</td>
-                  <td className="py-3 pr-3 font-semibold text-slate-900">{chapter.title}</td>
-                  <td className="py-3 pr-3">{chapter.weight}</td>
-                  <td className="py-3 pr-3">{chapter.estimatedQuestions}</td>
-                  <td className="py-3 pr-3">{chapterCounts[chapter.id] || 0} 题</td>
-                  <td className="py-3 pr-3 text-slate-600">{chapter.summary}</td>
-                </tr>
-              ))}
+              {chapters
+                .slice()
+                .sort((a, b) => a.priority - b.priority)
+                .map((chapter) => (
+                  <tr key={chapter.id} className="border-b last:border-0">
+                    <td className="py-3 pr-3 font-semibold">{chapter.priority}</td>
+                    <td className="py-3 pr-3 font-semibold text-slate-900">{chapter.title}</td>
+                    <td className="py-3 pr-3">{chapter.weight}</td>
+                    <td className="py-3 pr-3">{chapter.estimatedQuestions}</td>
+                    <td className="py-3 pr-3">{chapterCounts[chapter.id] || 0} 题</td>
+                    <td className="py-3 pr-3 text-slate-600">{chapter.summary}</td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </CardContent>
       </Card>
 
       <section className="grid gap-4 md:grid-cols-2">
-        {sortedChapters.map((chapter) => {
-          const detail = graph.details[chapter.nodeId];
-          return (
-            <Card key={chapter.id}>
-              <CardHeader>
-                <CardTitle>{chapter.title}</CardTitle>
-                <CardDescription>{detail?.summary || chapter.summary}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-600">
-                  {(detail?.bullets || []).slice(0, 5).map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          );
-        })}
+        {chapters
+          .slice()
+          .sort((a, b) => a.priority - b.priority)
+          .map((chapter) => {
+            const detail = graph.details[chapter.nodeId];
+            return (
+              <Card key={chapter.id}>
+                <CardHeader>
+                  <CardTitle>{chapter.title}</CardTitle>
+                  <CardDescription>{detail?.summary || chapter.summary}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-600">
+                    {(detail?.bullets || []).slice(0, 5).map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            );
+          })}
       </section>
+
     </div>
   );
 }

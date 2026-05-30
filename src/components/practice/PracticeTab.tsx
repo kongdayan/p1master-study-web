@@ -1,5 +1,5 @@
 import { Download, FileUp, Trash2 } from "lucide-react";
-import { useMemo, useRef } from "react";
+import { useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,7 +43,6 @@ export function PracticeTab({
   const state = progress.practiceState;
   const currentIndex = modulo(state.index, filteredQuestions.length);
   const currentQuestion = filteredQuestions[currentIndex];
-  const sortedChapters = useMemo(() => chapters.slice().sort((a, b) => Number(a.id) - Number(b.id)), [chapters]);
 
   const chapterCounts = questions.reduce<Record<string, number>>((acc, question) => {
     acc[question.chapterId] = (acc[question.chapterId] || 0) + 1;
@@ -95,7 +94,7 @@ export function PracticeTab({
             <Button variant={state.chapterId === "all" ? "default" : "outline"} size="sm" onClick={() => selectChapter("all")}>
               全部 {questions.length}
             </Button>
-            {sortedChapters.map((chapter) => (
+            {chapters.map((chapter) => (
               <Button
                 key={chapter.id}
                 variant={state.chapterId === chapter.id ? "default" : "outline"}
