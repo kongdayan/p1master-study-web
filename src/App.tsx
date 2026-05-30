@@ -1,5 +1,5 @@
 import { Loader2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ExamCatalog } from "@/components/catalog/ExamCatalog";
 import { ExamHeader } from "@/components/layout/ExamHeader";
 import { FriendlyMissingPage } from "@/components/layout/FriendlyMissingPage";
@@ -32,18 +32,16 @@ function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
+  const updatePracticeStateRef = useRef(progressApi.updatePracticeState);
+  useEffect(() => {
+    updatePracticeStateRef.current = progressApi.updatePracticeState;
+  });
+
   useEffect(() => {
     if (!data || route.view !== "practice" || !route.questionNumber) return;
     const index = data.questions.findIndex((question) => question.numericId === route.questionNumber);
     if (index < 0) return;
-    const current = progressApi.practiceState;
-    const alreadyThere =
-      current.chapterId === "all" &&
-      current.query === "" &&
-      !current.wrongOnly &&
-      data.questions[modulo(current.index, data.questions.length)]?.numericId === route.questionNumber;
-    if (alreadyThere) return;
-    progressApi.updatePracticeState({
+    updatePracticeStateRef.current({
       chapterId: "all",
       query: "",
       wrongOnly: false,
@@ -51,7 +49,7 @@ function App() {
       selected: null,
       revealed: false
     });
-  }, [data, progressApi, route.questionNumber, route.view]);
+  }, [data, route.questionNumber, route.view]);
 
   useEffect(() => {
     if (route.view === "catalog") return;
