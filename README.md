@@ -11,7 +11,7 @@
 - 学习记录：刷题进度、答题历史、错题本与复习清单会保存在当前浏览器，并支持导出 / 导入 JSON 备份。
 - 数据驱动：题库、章节、知识图谱和清单都从 `public/data/exams/iiqe-paper1/exam.json` 加载。
 - 组件化：刷题、错题本、知识图谱、大纲和基础 UI 均已拆分为可复用组件。
-- 可分享 URL：使用 `?exam=iiqe-paper1&view=practice&question=q-1` 区分考试、页面和题目。
+- 可分享 URL：使用 `?exam=iiqe-paper1&view=practice&question=1` 区分考试、页面和题目。
 
 ## 题库 JSON
 
@@ -43,7 +43,7 @@ npm run build
 线上地址：
 
 ```text
-https://p1.hunao.online
+https://exams.hunao.online
 ```
 
 这是纯静态站点，可部署到 Cloudflare Workers 静态资源、Cloudflare Pages、GitHub Pages、Netlify、Vercel 或任意静态文件服务器。
@@ -52,8 +52,10 @@ https://p1.hunao.online
 
 ```bash
 npm run build
-wrangler deploy --assets dist --domain p1.hunao.online
+wrangler deploy --assets dist --domain exams.hunao.online
 ```
+
+旧域名 `https://p1.hunao.online` 仍可作为兼容入口。
 
 ## 内容说明
 

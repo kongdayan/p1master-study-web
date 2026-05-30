@@ -16,10 +16,10 @@ function App() {
   const { data, error, loading } = useExamData(route.examId);
   const progressApi = useStudyProgress(data?.exam.id || route.examId, data?.questions || []);
 
-  const currentQuestionId = useMemo(() => {
+  const currentQuestionNumber = useMemo(() => {
     if (route.view !== "practice" || !progressApi.filteredQuestions.length) return null;
     const index = modulo(progressApi.practiceState.index, progressApi.filteredQuestions.length);
-    return progressApi.filteredQuestions[index]?.id || null;
+    return progressApi.filteredQuestions[index]?.numericId || null;
   }, [progressApi.filteredQuestions, progressApi.practiceState.index, route.view]);
 
   useEffect(() => {
@@ -29,15 +29,15 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!data || route.view !== "practice" || !route.questionId) return;
-    const index = data.questions.findIndex((question) => question.id === route.questionId);
+    if (!data || route.view !== "practice" || !route.questionNumber) return;
+    const index = data.questions.findIndex((question) => question.numericId === route.questionNumber);
     if (index < 0) return;
     const current = progressApi.practiceState;
     const alreadyThere =
       current.chapterId === "all" &&
       current.query === "" &&
       !current.wrongOnly &&
-      data.questions[modulo(current.index, data.questions.length)]?.id === route.questionId;
+      data.questions[modulo(current.index, data.questions.length)]?.numericId === route.questionNumber;
     if (alreadyThere) return;
     progressApi.updatePracticeState({
       chapterId: "all",
@@ -47,25 +47,25 @@ function App() {
       selected: null,
       revealed: false
     });
-  }, [data, progressApi, route.questionId, route.view]);
+  }, [data, progressApi, route.questionNumber, route.view]);
 
   useEffect(() => {
     const nextRoute = {
       examId: route.examId,
       view: route.view,
-      questionId: route.view === "practice" ? currentQuestionId : null
+      questionNumber: route.view === "practice" ? currentQuestionNumber : null
     };
     const nextUrl = buildRouteUrl(nextRoute);
     if (`${window.location.pathname}${window.location.search}` !== nextUrl) {
       window.history.replaceState(null, "", nextUrl);
     }
-  }, [currentQuestionId, route.examId, route.view]);
+  }, [currentQuestionNumber, route.examId, route.view]);
 
   function setView(view: AppView) {
     const nextRoute = {
       examId: route.examId,
       view,
-      questionId: view === "practice" ? currentQuestionId : null
+      questionNumber: view === "practice" ? currentQuestionNumber : null
     };
     setRoute(nextRoute);
     window.history.pushState(null, "", buildRouteUrl(nextRoute));
