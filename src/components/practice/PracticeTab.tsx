@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { QuestionCard } from "@/components/practice/QuestionCard";
 import { modulo } from "@/lib/utils";
+import type { SyncStatus } from "@/types/cloud";
 import type { Chapter, Question } from "@/types/exam";
 import type { StudyProgress } from "@/types/progress";
 
@@ -23,6 +24,11 @@ interface PracticeTabProps {
   toggleWrong: (questionId: string) => void;
   resetProgress: () => void;
   importProgress: (progress: StudyProgress) => void;
+  markSeen: (question: Question) => void;
+  onNavigateQuestion: (question: Question, index: number) => void;
+  syncStatus: SyncStatus;
+  syncError: string | null;
+  onRetrySync: () => void;
 }
 
 export function PracticeTab({
@@ -37,7 +43,12 @@ export function PracticeTab({
   answerQuestion,
   toggleWrong,
   resetProgress,
-  importProgress
+  importProgress,
+  markSeen,
+  onNavigateQuestion,
+  syncStatus,
+  syncError,
+  onRetrySync
 }: PracticeTabProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const state = progress.practiceState;
@@ -78,6 +89,18 @@ export function PracticeTab({
     reader.readAsText(file);
   }
 
+  function navigateByOffset(offset: number) {
+    const nextIndex = modulo(currentIndex + offset, filteredQuestions.length);
+    const nextQuestion = filteredQuestions[nextIndex];
+    if (nextQuestion) onNavigateQuestion(nextQuestion, nextIndex);
+  }
+
+  function navigateRandom() {
+    const nextIndex = Math.floor(Math.random() * filteredQuestions.length);
+    const nextQuestion = filteredQuestions[nextIndex];
+    if (nextQuestion) onNavigateQuestion(nextQuestion, nextIndex);
+  }
+
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap gap-2">
@@ -86,6 +109,14 @@ export function PracticeTab({
         <Badge>已做 {stats.answered} 题</Badge>
         <Badge>正确率 {stats.rate}%</Badge>
         <Badge>错题 {stats.wrong} 题</Badge>
+        <Badge title={syncError || undefined}>
+          {syncStatus === "syncing" ? "同步中" : syncStatus === "synced" ? "已同步" : syncStatus === "offline" ? "离线，已暂存" : syncStatus === "error" ? "同步失败" : "本地保存"}
+        </Badge>
+        {syncStatus === "error" ? (
+          <Button size="sm" variant="outline" onClick={onRetrySync}>
+            点击重试
+          </Button>
+        ) : null}
       </div>
 
       <Card>
@@ -150,11 +181,12 @@ export function PracticeTab({
           revealed={state.revealed}
           wrong={Boolean(progress.wrongQuestionIds[currentQuestion.id])}
           onAnswer={(letter) => answerQuestion(currentQuestion, letter)}
-          onPrev={() => updatePracticeState({ index: modulo(currentIndex - 1, filteredQuestions.length), selected: null, revealed: false })}
-          onNext={() => updatePracticeState({ index: modulo(currentIndex + 1, filteredQuestions.length), selected: null, revealed: false })}
-          onRandom={() => updatePracticeState({ index: Math.floor(Math.random() * filteredQuestions.length), selected: null, revealed: false })}
+          onPrev={() => navigateByOffset(-1)}
+          onNext={() => navigateByOffset(1)}
+          onRandom={navigateRandom}
           onReveal={() => {
             const showing = state.revealed || state.selected !== null || Boolean(progress.answerHistory[currentQuestion.id] && !state.hiddenAnswers[currentQuestion.id]);
+            if (!showing) markSeen(currentQuestion);
             updatePracticeState({
               selected: null,
               revealed: !showing,

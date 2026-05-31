@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { decodeAnswers, decodeBitset, selectedToChoice, choiceToSelected } from "@/lib/progressCodec";
 import { readStorage, writeStorage } from "@/lib/storage";
 import type { ChoiceLetter, Question } from "@/types/exam";
+import type { CloudProgressSnapshot, ProgressChange } from "@/types/cloud";
 import type { AnswerRecord, PracticeState, StudyProgress } from "@/types/progress";
 
 const defaultPracticeState: PracticeState = {
@@ -19,12 +21,16 @@ function emptyProgress(): StudyProgress {
     practiceState: defaultPracticeState,
     wrongQuestionIds: {},
     answerHistory: {},
-    checklist: {}
+    seenQuestionIds: {},
+    checklist: {},
+    cloudRevision: 0,
+    syncQueue: []
   };
 }
 
 export function useStudyProgress(examId: string, questions: Question[]) {
   const storageKey = `study-progress:${examId}:v1`;
+  const questionById = useMemo(() => new Map(questions.map((question) => [question.id, question])), [questions]);
   const [progress, setProgress] = useState<StudyProgress>(() => {
     const saved = readStorage<Partial<StudyProgress>>(storageKey, {});
     return {
@@ -33,7 +39,10 @@ export function useStudyProgress(examId: string, questions: Question[]) {
       practiceState: {
         ...defaultPracticeState,
         ...(saved.practiceState || {})
-      }
+      },
+      seenQuestionIds: saved.seenQuestionIds || {},
+      cloudRevision: saved.cloudRevision || 0,
+      syncQueue: saved.syncQueue || []
     };
   });
 
@@ -80,13 +89,14 @@ export function useStudyProgress(examId: string, questions: Question[]) {
   }
 
   function answerQuestion(question: Question, selected: ChoiceLetter) {
+    const now = new Date().toISOString();
     const record: AnswerRecord = {
       selected,
       answer: question.answer,
       correct: selected === question.answer,
       chapterId: question.chapterId,
       ref: question.ref,
-      updatedAt: new Date().toISOString()
+      updatedAt: now
     };
     setProgress((current) => {
       const wrongQuestionIds = { ...current.wrongQuestionIds };
@@ -97,10 +107,21 @@ export function useStudyProgress(examId: string, questions: Question[]) {
       return {
         ...current,
         wrongQuestionIds,
+        seenQuestionIds: {
+          ...current.seenQuestionIds,
+          [question.id]: now
+        },
         answerHistory: {
           ...current.answerHistory,
           [question.id]: record
         },
+        syncQueue: appendSyncChange(current.syncQueue, {
+          question: question.numericId,
+          selected: choiceToSelected(selected),
+          wrong: !record.correct,
+          seen: true,
+          clientUpdatedAt: now
+        }),
         practiceState: {
           ...current.practiceState,
           selected,
@@ -113,10 +134,41 @@ export function useStudyProgress(examId: string, questions: Question[]) {
 
   function toggleWrong(questionId: string) {
     setProgress((current) => {
+      const question = questionById.get(questionId);
+      const now = new Date().toISOString();
       const wrongQuestionIds = { ...current.wrongQuestionIds };
       if (wrongQuestionIds[questionId]) delete wrongQuestionIds[questionId];
       else wrongQuestionIds[questionId] = true;
-      return { ...current, wrongQuestionIds };
+      return {
+        ...current,
+        wrongQuestionIds,
+        syncQueue: question
+          ? appendSyncChange(current.syncQueue, {
+              question: question.numericId,
+              wrong: Boolean(wrongQuestionIds[questionId]),
+              clientUpdatedAt: now
+            })
+          : current.syncQueue
+      };
+    });
+  }
+
+  function markSeen(question: Question) {
+    const now = new Date().toISOString();
+    setProgress((current) => {
+      if (current.seenQuestionIds[question.id]) return current;
+      return {
+        ...current,
+        seenQuestionIds: {
+          ...current.seenQuestionIds,
+          [question.id]: now
+        },
+        syncQueue: appendSyncChange(current.syncQueue, {
+          question: question.numericId,
+          seen: true,
+          clientUpdatedAt: now
+        })
+      };
     });
   }
 
@@ -141,8 +193,27 @@ export function useStudyProgress(examId: string, questions: Question[]) {
       practiceState: {
         ...defaultPracticeState,
         ...(nextProgress.practiceState || {})
-      }
+      },
+      seenQuestionIds: nextProgress.seenQuestionIds || {},
+      cloudRevision: nextProgress.cloudRevision || 0,
+      syncQueue: nextProgress.syncQueue || []
     });
+  }
+
+  function applyCloudSnapshot(snapshot: CloudProgressSnapshot) {
+    setProgress((current) => mergeCloudSnapshot(current, snapshot, questions));
+  }
+
+  function clearSyncQueue(syncedCount: number, revision: number) {
+    setProgress((current) => ({
+      ...current,
+      cloudRevision: revision,
+      syncQueue: current.syncQueue.slice(syncedCount)
+    }));
+  }
+
+  function buildFullSyncChanges() {
+    return buildFullChanges(progress, questions);
   }
 
   return {
@@ -154,8 +225,85 @@ export function useStudyProgress(examId: string, questions: Question[]) {
     resetCurrentAnswer,
     answerQuestion,
     toggleWrong,
+    markSeen,
     setChecklistItem,
     resetProgress,
-    importProgress
+    importProgress,
+    applyCloudSnapshot,
+    clearSyncQueue,
+    buildFullSyncChanges
   };
+}
+
+function appendSyncChange(queue: ProgressChange[], change: ProgressChange) {
+  return [...queue, change].slice(-1000);
+}
+
+function mergeCloudSnapshot(current: StudyProgress, snapshot: CloudProgressSnapshot, questions: Question[]): StudyProgress {
+  const answers = decodeAnswers(snapshot.answers, questions.length);
+  const wrong = decodeBitset(snapshot.wrong, questions.length);
+  const seen = decodeBitset(snapshot.seen, questions.length);
+  const answerHistory: Record<string, AnswerRecord> = {};
+  const wrongQuestionIds: Record<string, boolean> = {};
+  const seenQuestionIds: Record<string, string> = {};
+  const updatedAt = snapshot.updatedAt || new Date().toISOString();
+
+  questions.forEach((question) => {
+    const selected = selectedToChoice(answers[question.numericId] || 0);
+    if (selected) {
+      answerHistory[question.id] = {
+        selected,
+        answer: question.answer,
+        correct: selected === question.answer,
+        chapterId: question.chapterId,
+        ref: question.ref,
+        updatedAt
+      };
+    }
+    if (wrong[question.numericId]) wrongQuestionIds[question.id] = true;
+    if (seen[question.numericId]) seenQuestionIds[question.id] = updatedAt;
+  });
+
+  const cursorIndex = Math.max(0, questions.findIndex((question) => question.numericId === snapshot.cursorQuestion));
+  return {
+    ...current,
+    answerHistory,
+    wrongQuestionIds,
+    seenQuestionIds,
+    cloudRevision: snapshot.revision,
+    syncQueue: [],
+    practiceState: {
+      ...current.practiceState,
+      index: cursorIndex >= 0 ? cursorIndex : current.practiceState.index,
+      selected: null,
+      revealed: false
+    }
+  };
+}
+
+function buildFullChanges(progress: StudyProgress, questions: Question[]) {
+  const changes = new Map<number, ProgressChange>();
+  const ensure = (question: Question, updatedAt?: string) => {
+    const existing = changes.get(question.numericId);
+    if (existing) return existing;
+    const next: ProgressChange = {
+      question: question.numericId,
+      clientUpdatedAt: updatedAt || new Date().toISOString()
+    };
+    changes.set(question.numericId, next);
+    return next;
+  };
+
+  questions.forEach((question) => {
+    const answer = progress.answerHistory[question.id];
+    const seenAt = progress.seenQuestionIds[question.id];
+    const wrong = progress.wrongQuestionIds[question.id];
+    if (!answer && !seenAt && !wrong) return;
+    const change = ensure(question, answer?.updatedAt || seenAt);
+    if (answer) change.selected = choiceToSelected(answer.selected);
+    if (seenAt || answer) change.seen = true;
+    change.wrong = Boolean(wrong);
+  });
+
+  return Array.from(changes.values()).sort((a, b) => a.question - b.question);
 }

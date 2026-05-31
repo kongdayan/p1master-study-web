@@ -7,6 +7,8 @@ import { KnowledgeGraph } from "@/components/knowledge/KnowledgeGraph";
 import { OutlineTab } from "@/components/outline/OutlineTab";
 import { PracticeTab } from "@/components/practice/PracticeTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCloudAuth } from "@/hooks/useCloudAuth";
+import { useCloudSync } from "@/hooks/useCloudSync";
 import { useExamCatalog } from "@/hooks/useExamCatalog";
 import { useExamData } from "@/hooks/useExamData";
 import { useStudyProgress } from "@/hooks/useStudyProgress";
@@ -19,12 +21,24 @@ function App() {
   const catalog = useExamCatalog();
   const { data, error, loading } = useExamData(route.examId);
   const progressApi = useStudyProgress(data?.exam.id || route.examId || "catalog", data?.questions || []);
+  const auth = useCloudAuth();
 
   const currentQuestionNumber = useMemo(() => {
     if (route.view !== "practice" || !progressApi.filteredQuestions.length) return null;
     const index = modulo(progressApi.practiceState.index, progressApi.filteredQuestions.length);
     return progressApi.filteredQuestions[index]?.numericId || null;
   }, [progressApi.filteredQuestions, progressApi.practiceState.index, route.view]);
+
+  const cloudSync = useCloudSync({
+    examId: data?.exam.id || route.examId || "catalog",
+    user: auth.user,
+    questions: data?.questions || [],
+    progress: progressApi.progress,
+    currentQuestionNumber,
+    applyCloudSnapshot: progressApi.applyCloudSnapshot,
+    clearSyncQueue: progressApi.clearSyncQueue,
+    buildFullSyncChanges: progressApi.buildFullSyncChanges
+  });
 
   useEffect(() => {
     const handlePopState = () => setRoute(parseRoute());
@@ -41,6 +55,8 @@ function App() {
     if (!data || route.view !== "practice" || !route.questionNumber) return;
     const index = data.questions.findIndex((question) => question.numericId === route.questionNumber);
     if (index < 0) return;
+    const currentQuestion = progressApi.filteredQuestions[modulo(progressApi.practiceState.index, progressApi.filteredQuestions.length)];
+    if (currentQuestion?.numericId === route.questionNumber) return;
     updatePracticeStateRef.current({
       chapterId: "all",
       query: "",
@@ -49,7 +65,7 @@ function App() {
       selected: null,
       revealed: false
     });
-  }, [data, route.questionNumber, route.view]);
+  }, [data, progressApi.filteredQuestions, progressApi.practiceState.index, route.questionNumber, route.view]);
 
   useEffect(() => {
     if (route.view === "catalog") return;
@@ -90,6 +106,28 @@ function App() {
     window.history.pushState(null, "", buildRouteUrl(nextRoute));
   }
 
+  function navigatePracticeQuestion(questionNumber: number, index: number, replace = false) {
+    const nextRoute: AppRoute = {
+      examId: route.examId,
+      view: "practice",
+      questionNumber
+    };
+    setRoute(nextRoute);
+    const nextUrl = buildRouteUrl(nextRoute);
+    if (replace) window.history.replaceState(null, "", nextUrl);
+    else window.history.pushState(null, "", nextUrl);
+    updatePracticeStateRef.current({
+      chapterId: "all",
+      query: "",
+      wrongOnly: false,
+      index,
+      selected: null,
+      revealed: false
+    });
+    const question = data?.questions.find((item) => item.numericId === questionNumber);
+    if (question) progressApi.markSeen(question);
+  }
+
   if (route.view === "catalog") {
     if (catalog.loading) {
       return (
@@ -118,7 +156,17 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <ExamHeader exam={data.exam} questionCount={data.questions.length} />
+      <ExamHeader
+        exam={data.exam}
+        questionCount={data.questions.length}
+        user={auth.user}
+        providers={auth.providers}
+        authLoading={auth.loading}
+        syncStatus={cloudSync.status}
+        syncError={cloudSync.error}
+        onLogin={auth.login}
+        onLogout={() => void auth.logout()}
+      />
       <main className="mx-auto max-w-7xl px-4 py-5">
         <Tabs value={route.view} onValueChange={(value) => setView(value as AppView)} className="grid gap-4">
           <TabsList className="w-full justify-start overflow-x-auto md:w-auto">
@@ -140,6 +188,11 @@ function App() {
               toggleWrong={progressApi.toggleWrong}
               resetProgress={progressApi.resetProgress}
               importProgress={progressApi.importProgress}
+              markSeen={progressApi.markSeen}
+              onNavigateQuestion={(question, index) => navigatePracticeQuestion(question.numericId, index)}
+              syncStatus={cloudSync.status}
+              syncError={cloudSync.error}
+              onRetrySync={() => void cloudSync.retry()}
             />
           </TabsContent>
           <TabsContent value="outline">

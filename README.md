@@ -9,7 +9,7 @@
 - 学习大纲：汇总考试结构、章节权重和高频考点。
 - 刷题模式：内置 913 道选择题，支持按章筛选、搜索、显示答案、随机题、错题本和本地进度持久化。
 - 移动端适配：手机上刷题与大纲是独立 Tab，刷题视图专注显示题目和选项。
-- 学习记录：刷题进度、答题历史、错题本与复习清单会保存在当前浏览器，并支持导出 / 导入 JSON 备份。
+- 学习记录：未登录时保存在当前浏览器；登录后可同步到 Cloudflare D1，并继续支持导出 / 导入 JSON 备份。
 - 数据驱动：考试列表从 `public/data/exams/index.json` 加载，题库、章节、知识图谱和清单从对应考试的 `exam.json` 加载。
 - 组件化：刷题、错题本、知识图谱、大纲和基础 UI 均已拆分为可复用组件。
 - 可分享 URL：使用 `?exam=iiqe-paper1&view=practice&question=1` 区分考试、页面和题目。
@@ -48,7 +48,7 @@ npm run build
 https://exams.hunao.online
 ```
 
-这是纯静态站点，可部署到 Cloudflare Workers 静态资源、Cloudflare Pages、GitHub Pages、Netlify、Vercel 或任意静态文件服务器。
+当前站点使用 Cloudflare Workers 静态资源 + Worker API + D1。静态资源仍由 Vite 构建，登录和云端进度由 `worker/index.ts` 提供。
 
 当前部署使用 Cloudflare Workers 静态资源加自定义域名：
 
@@ -58,6 +58,33 @@ wrangler deploy --domain exams.hunao.online --domain p1.hunao.online
 ```
 
 旧域名 `https://p1.hunao.online` 仍可作为兼容入口。
+
+## 云端同步配置
+
+首次启用云端同步需要创建并迁移 D1：
+
+```bash
+wrangler d1 create p1master-study-web-db
+wrangler d1 migrations apply p1master-study-web-db --remote
+```
+
+`wrangler.toml` 需要绑定名为 `DB` 的 D1 数据库。Google / Apple 登录通过以下 secrets 配置：
+
+```bash
+wrangler secret put GOOGLE_CLIENT_ID
+wrangler secret put GOOGLE_CLIENT_SECRET
+wrangler secret put APPLE_CLIENT_ID
+wrangler secret put APPLE_TEAM_ID
+wrangler secret put APPLE_KEY_ID
+wrangler secret put APPLE_PRIVATE_KEY
+```
+
+OAuth 回调地址：
+
+```text
+https://exams.hunao.online/api/auth/google/callback
+https://exams.hunao.online/api/auth/apple/callback
+```
 
 ## 内容说明
 

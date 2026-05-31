@@ -1,4 +1,5 @@
 import type { ChoiceLetter } from "@/types/exam";
+import type { ProgressChange } from "@/types/cloud";
 
 export interface AnswerRecord {
   selected: ChoiceLetter;
@@ -25,5 +26,8 @@ export interface StudyProgress {
   practiceState: PracticeState;
   wrongQuestionIds: Record<string, boolean>;
   answerHistory: Record<string, AnswerRecord>;
+  seenQuestionIds: Record<string, string>;
   checklist: Record<string, boolean>;
+  cloudRevision: number;
+  syncQueue: ProgressChange[];
 }
