@@ -75,7 +75,7 @@ async function handleApi(request: Request, env: Env, url: URL) {
     if (request.method === "GET" && url.pathname === "/api/auth/google/url") return await getOAuthUrl(request, env, "google");
     if (request.method === "GET" && url.pathname === "/api/auth/apple/url") return await getOAuthUrl(request, env, "apple");
     if (request.method === "GET" && url.pathname === "/api/auth/google/start") return await startOAuth(request, env, "google");
-    if (request.method === "GET" && url.pathname === "/api/auth/google/callback") return await finishOAuth(request, env, "google");
+    if ((request.method === "GET" || request.method === "POST") && url.pathname === "/api/auth/google/callback") return await finishOAuth(request, env, "google");
     if (request.method === "GET" && url.pathname === "/api/auth/apple/start") return await startOAuth(request, env, "apple");
     if (request.method === "POST" && url.pathname === "/api/auth/apple/callback") return await finishOAuth(request, env, "apple");
 
@@ -152,7 +152,7 @@ async function finishOAuth(request: Request, env: Env, provider: "google" | "app
   const url = new URL(request.url);
   let code = url.searchParams.get("code");
   let state = url.searchParams.get("state");
-  if (provider === "apple" && request.method === "POST") {
+  if (request.method === "POST") {
     const form = await request.formData();
     code = String(form.get("code") || "");
     state = String(form.get("state") || "");
@@ -300,6 +300,7 @@ async function googleAuthorizeUrl(env: Env, redirectUri: string, state: string, 
   authUrl.searchParams.set("state", state);
   authUrl.searchParams.set("code_challenge", await codeChallenge(codeVerifier));
   authUrl.searchParams.set("code_challenge_method", "S256");
+  authUrl.searchParams.set("response_mode", "form_post");
   authUrl.searchParams.set("prompt", "select_account");
   return authUrl.toString();
 }
