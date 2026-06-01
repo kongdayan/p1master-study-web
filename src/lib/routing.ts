@@ -12,6 +12,11 @@ const defaultRoute: AppRoute = {
   questionNumber: null
 };
 
+export function appPathname(pathname = window.location.pathname) {
+  if (!pathname || pathname === "") return "/";
+  return pathname.startsWith("/api/") ? "/" : pathname;
+}
+
 function parseQuestionNumber(value: string | null) {
   if (!value) return null;
   const normalized = value.trim().replace(/^q-/i, "");
@@ -33,10 +38,15 @@ export function parseRoute(search = window.location.search): AppRoute {
 }
 
 export function buildRouteUrl(route: AppRoute) {
-  if (route.view === "catalog" || !route.examId) return window.location.pathname;
+  const pathname = appPathname();
+  if (route.view === "catalog" || !route.examId) return pathname;
   const params = new URLSearchParams();
   params.set("exam", route.examId);
   params.set("view", route.view);
   if (route.view === "practice" && route.questionNumber) params.set("question", String(route.questionNumber));
-  return `${window.location.pathname}?${params.toString()}`;
+  return `${pathname}?${params.toString()}`;
+}
+
+export function currentAppReturnTo() {
+  return buildRouteUrl(parseRoute());
 }

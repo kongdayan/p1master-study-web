@@ -12,7 +12,7 @@ import { useCloudSync } from "@/hooks/useCloudSync";
 import { useExamCatalog } from "@/hooks/useExamCatalog";
 import { useExamData } from "@/hooks/useExamData";
 import { useStudyProgress } from "@/hooks/useStudyProgress";
-import { buildRouteUrl, parseRoute, type AppRoute, type AppView } from "@/lib/routing";
+import { appPathname, buildRouteUrl, parseRoute, type AppRoute, type AppView } from "@/lib/routing";
 import { modulo } from "@/lib/utils";
 import type { ExamCatalogItem } from "@/types/exam";
 
@@ -45,6 +45,15 @@ function App() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
+
+  useEffect(() => {
+    const normalizedPath = appPathname();
+    if (normalizedPath === window.location.pathname) return;
+    const nextUrl = buildRouteUrl(route);
+    if (`${window.location.pathname}${window.location.search}` !== nextUrl) {
+      window.history.replaceState(null, "", nextUrl);
+    }
+  }, [route]);
 
   const updatePracticeStateRef = useRef(progressApi.updatePracticeState);
   useEffect(() => {
