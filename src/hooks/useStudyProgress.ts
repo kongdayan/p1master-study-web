@@ -236,7 +236,17 @@ export function useStudyProgress(examId: string, questions: Question[]) {
 }
 
 function appendSyncChange(queue: ProgressChange[], change: ProgressChange) {
-  return [...queue, change].slice(-1000);
+  const next = queue.filter((item) => item.question !== change.question);
+  const existing = queue.find((item) => item.question === change.question);
+  next.push({
+    ...existing,
+    ...change,
+    selected: change.selected ?? existing?.selected,
+    wrong: change.wrong ?? existing?.wrong,
+    seen: change.seen ?? existing?.seen,
+    clientUpdatedAt: change.clientUpdatedAt
+  });
+  return next.slice(-1000);
 }
 
 function mergeCloudSnapshot(current: StudyProgress, snapshot: CloudProgressSnapshot, questions: Question[]): StudyProgress {

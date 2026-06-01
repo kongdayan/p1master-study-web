@@ -84,12 +84,14 @@ function App() {
     updatePracticeStateRef.current = progressApi.updatePracticeState;
   });
 
+  const handledRouteQuestionRef = useRef<string | null>(null);
   useEffect(() => {
     if (!data || route.view !== "practice" || !route.questionNumber) return;
+    const routeKey = `${data.exam.id}:${route.questionNumber}`;
+    if (handledRouteQuestionRef.current === routeKey) return;
     const index = data.questions.findIndex((question) => question.numericId === route.questionNumber);
     if (index < 0) return;
-    const currentQuestion = progressApi.filteredQuestions[modulo(progressApi.practiceState.index, progressApi.filteredQuestions.length)];
-    if (currentQuestion?.numericId === route.questionNumber) return;
+    handledRouteQuestionRef.current = routeKey;
     updatePracticeStateRef.current({
       chapterId: "all",
       query: "",
@@ -98,7 +100,7 @@ function App() {
       selected: null,
       revealed: false
     });
-  }, [data, progressApi.filteredQuestions, progressApi.practiceState.index, route.questionNumber, route.view]);
+  }, [data, route.questionNumber, route.view]);
 
   useEffect(() => {
     if (route.view === "catalog") return;
@@ -149,10 +151,8 @@ function App() {
     const nextUrl = buildRouteUrl(nextRoute);
     if (replace) window.history.replaceState(null, "", nextUrl);
     else window.history.pushState(null, "", nextUrl);
+    handledRouteQuestionRef.current = `${data?.exam.id || route.examId || ""}:${questionNumber}`;
     updatePracticeStateRef.current({
-      chapterId: "all",
-      query: "",
-      wrongOnly: false,
       index,
       selected: null,
       revealed: false

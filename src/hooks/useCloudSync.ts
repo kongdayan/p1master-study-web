@@ -4,6 +4,9 @@ import type { Question } from "@/types/exam";
 import type { StudyProgress } from "@/types/progress";
 import type { CloudUser, SyncStatus } from "@/types/cloud";
 
+const syncDebounceMs = 5000;
+const maxBatchSize = 20;
+
 interface UseCloudSyncOptions {
   examId: string;
   user: CloudUser | null;
@@ -29,7 +32,12 @@ export function useCloudSync({
   const [error, setError] = useState<string | null>(null);
   const bootstrappedKeyRef = useRef<string | null>(null);
   const syncingRef = useRef(false);
+  const currentQuestionNumberRef = useRef<number | null>(currentQuestionNumber);
   const queueKey = useMemo(() => progress.syncQueue.map((change) => `${change.question}:${change.clientUpdatedAt}`).join("|"), [progress.syncQueue]);
+
+  useEffect(() => {
+    currentQuestionNumberRef.current = currentQuestionNumber;
+  }, [currentQuestionNumber]);
 
   async function bootstrap() {
     if (!user || !questions.length || bootstrappedKeyRef.current === `${user.id}:${examId}`) return;
@@ -42,7 +50,7 @@ export function useCloudSync({
       if (fullChanges.length) {
         const merged = await syncCloudProgress(examId, {
           baseRevision: snapshot.revision,
-          cursorQuestion: currentQuestionNumber || snapshot.cursorQuestion || 1,
+          cursorQuestion: currentQuestionNumberRef.current || snapshot.cursorQuestion || 1,
           changes: fullChanges
         });
         applyCloudSnapshot(merged);
@@ -66,7 +74,7 @@ export function useCloudSync({
     try {
       const snapshot = await syncCloudProgress(examId, {
         baseRevision: progress.cloudRevision,
-        cursorQuestion: currentQuestionNumber || undefined,
+        cursorQuestion: currentQuestionNumberRef.current || undefined,
         changes
       });
       clearSyncQueue(changes.length, snapshot.revision);
@@ -91,9 +99,21 @@ export function useCloudSync({
 
   useEffect(() => {
     if (!user || !queueKey) return;
-    const timeout = window.setTimeout(() => void flushQueue(), 600);
+    if (progress.syncQueue.length >= maxBatchSize) {
+      void flushQueue();
+      return;
+    }
+    const timeout = window.setTimeout(() => void flushQueue(), syncDebounceMs);
     return () => window.clearTimeout(timeout);
-  }, [examId, queueKey, user?.id, currentQuestionNumber]);
+  }, [examId, queueKey, user?.id, progress.syncQueue.length]);
+
+  useEffect(() => {
+    const flushOnHidden = () => {
+      if (document.visibilityState === "hidden") void flushQueue();
+    };
+    document.addEventListener("visibilitychange", flushOnHidden);
+    return () => document.removeEventListener("visibilitychange", flushOnHidden);
+  });
 
   useEffect(() => {
     const handleOnline = () => void flushQueue();
