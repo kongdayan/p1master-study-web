@@ -75,7 +75,8 @@ async function handleApi(request: Request, env: Env, url: URL) {
     if (request.method === "GET" && url.pathname === "/api/auth/google/url") return await getOAuthUrl(request, env, "google");
     if (request.method === "GET" && url.pathname === "/api/auth/apple/url") return await getOAuthUrl(request, env, "apple");
     if (request.method === "GET" && url.pathname === "/api/auth/google/start") return await startOAuth(request, env, "google");
-    if ((request.method === "GET" || request.method === "POST") && url.pathname === "/api/auth/google/callback") return await finishOAuth(request, env, "google");
+    if (request.method === "GET" && url.pathname === "/api/auth/google/callback") return await finishOAuth(request, env, "google");
+    if (request.method === "POST" && url.pathname === "/api/auth/google/complete") return await finishOAuth(request, env, "google", "json");
     if (request.method === "GET" && url.pathname === "/api/auth/apple/start") return await startOAuth(request, env, "apple");
     if (request.method === "POST" && url.pathname === "/api/auth/apple/callback") return await finishOAuth(request, env, "apple");
 
@@ -147,7 +148,7 @@ async function createOAuthUrl(request: Request, env: Env, provider: "google" | "
   return provider === "google" ? await googleAuthorizeUrl(env, redirectUri, state, codeVerifier) : await appleAuthorizeUrl(env, redirectUri, state, codeVerifier);
 }
 
-async function finishOAuth(request: Request, env: Env, provider: "google" | "apple") {
+async function finishOAuth(request: Request, env: Env, provider: "google" | "apple", responseMode: "redirect" | "json" = "redirect") {
   assertProviderConfig(env, provider);
   const url = new URL(request.url);
   let code = url.searchParams.get("code");
@@ -178,13 +179,12 @@ async function finishOAuth(request: Request, env: Env, provider: "google" | "app
     .bind(crypto.randomUUID(), userId, tokenHash, now.toISOString(), now.toISOString(), expiresAt)
     .run();
 
-  return new Response(null, {
-    status: 302,
-    headers: {
-      location: stateRow.redirect_path || "/",
-      "set-cookie": `${sessionCookie}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${sessionMaxAgeSeconds}`
-    }
-  });
+  const redirectPath = stateRow.redirect_path || "/";
+  const cookie = `${sessionCookie}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${sessionMaxAgeSeconds}`;
+  if (responseMode === "json") {
+    return json({ ok: true, redirectPath }, 200, { "set-cookie": cookie });
+  }
+  return new Response(null, { status: 302, headers: { location: redirectPath, "set-cookie": cookie } });
 }
 
 async function handleGetProgress(request: Request, env: Env, examId: string) {
@@ -300,7 +300,6 @@ async function googleAuthorizeUrl(env: Env, redirectUri: string, state: string, 
   authUrl.searchParams.set("state", state);
   authUrl.searchParams.set("code_challenge", await codeChallenge(codeVerifier));
   authUrl.searchParams.set("code_challenge_method", "S256");
-  authUrl.searchParams.set("response_mode", "form_post");
   authUrl.searchParams.set("prompt", "select_account");
   return authUrl.toString();
 }

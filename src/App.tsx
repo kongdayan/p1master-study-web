@@ -14,6 +14,7 @@ import { useExamData } from "@/hooks/useExamData";
 import { useStudyProgress } from "@/hooks/useStudyProgress";
 import { appPathname, buildRouteUrl, parseRoute, type AppRoute, type AppView } from "@/lib/routing";
 import { modulo } from "@/lib/utils";
+import { completeGoogleOAuth } from "@/services/cloudApi";
 import type { ExamCatalogItem } from "@/types/exam";
 
 function App() {
@@ -22,6 +23,8 @@ function App() {
   const { data, error, loading } = useExamData(route.examId);
   const progressApi = useStudyProgress(data?.exam.id || route.examId || "catalog", data?.questions || []);
   const auth = useCloudAuth();
+  const [oauthCompleting, setOauthCompleting] = useState(() => window.location.pathname === "/api/auth/google/callback");
+  const [oauthError, setOauthError] = useState<string | null>(null);
 
   const currentQuestionNumber = useMemo(() => {
     if (route.view !== "practice" || !progressApi.filteredQuestions.length) return null;
@@ -44,6 +47,27 @@ function App() {
     const handlePopState = () => setRoute(parseRoute());
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (window.location.pathname !== "/api/auth/google/callback") return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const state = params.get("state");
+    if (!code || !state) {
+      setOauthError("Google 回调缺少授权参数，请重新登录。");
+      setOauthCompleting(false);
+      return;
+    }
+    setOauthCompleting(true);
+    completeGoogleOAuth(code, state)
+      .then((result) => {
+        window.location.replace(result.redirectPath || "/");
+      })
+      .catch((cause) => {
+        setOauthError(cause instanceof Error ? cause.message : "Google 登录完成失败，请重新登录。");
+        setOauthCompleting(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -135,6 +159,30 @@ function App() {
     });
     const question = data?.questions.find((item) => item.numericId === questionNumber);
     if (question) progressApi.markSeen(question);
+  }
+
+  if (oauthCompleting || oauthError) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 text-slate-700">
+        <div className="grid max-w-md gap-3 rounded-lg border border-slate-200 bg-white p-5 text-center shadow-sm">
+          {oauthCompleting ? (
+            <>
+              <Loader2 className="mx-auto h-6 w-6 animate-spin text-teal-700" />
+              <h1 className="text-lg font-extrabold text-slate-950">正在完成 Google 登录</h1>
+              <p className="text-sm leading-6 text-slate-600">马上把你带回刷题页面。</p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-lg font-extrabold text-slate-950">Google 登录没有完成</h1>
+              <p className="text-sm leading-6 text-slate-600">{oauthError}</p>
+              <button className="rounded-md bg-teal-700 px-4 py-2 text-sm font-bold text-white" onClick={() => window.location.replace("/")}>
+                回到首页
+              </button>
+            </>
+          )}
+        </div>
+      </main>
+    );
   }
 
   if (route.view === "catalog") {
