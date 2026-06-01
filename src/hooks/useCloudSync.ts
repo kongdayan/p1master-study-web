@@ -30,6 +30,7 @@ export function useCloudSync({
 }: UseCloudSyncOptions) {
   const [status, setStatus] = useState<SyncStatus>("local");
   const [error, setError] = useState<string | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const bootstrappedKeyRef = useRef<string | null>(null);
   const syncingRef = useRef(false);
   const currentQuestionNumberRef = useRef<number | null>(currentQuestionNumber);
@@ -58,6 +59,7 @@ export function useCloudSync({
         applyCloudSnapshot(snapshot);
       }
       setStatus("synced");
+      setLastSyncedAt(new Date().toISOString());
     } catch (cause) {
       bootstrappedKeyRef.current = null;
       setStatus(navigator.onLine ? "error" : "offline");
@@ -80,6 +82,7 @@ export function useCloudSync({
       clearSyncQueue(changes.length, snapshot.revision);
       applyCloudSnapshot(snapshot);
       setStatus("synced");
+      setLastSyncedAt(new Date().toISOString());
     } catch (cause) {
       setStatus(navigator.onLine ? "error" : "offline");
       setError(cause instanceof Error ? cause.message : "同步失败");
@@ -92,6 +95,7 @@ export function useCloudSync({
     if (!user) {
       bootstrappedKeyRef.current = null;
       setStatus("local");
+      setLastSyncedAt(null);
       return;
     }
     void bootstrap();
@@ -124,6 +128,7 @@ export function useCloudSync({
   return {
     status: user ? status : "local",
     error,
+    lastSyncedAt,
     retry: flushQueue
   };
 }

@@ -221,6 +221,7 @@ function App() {
         authLoading={auth.loading}
         syncStatus={cloudSync.status}
         syncError={cloudSync.error}
+        lastSyncedAt={cloudSync.lastSyncedAt}
         onLogin={auth.login}
         onLogout={() => void auth.logout()}
       />
