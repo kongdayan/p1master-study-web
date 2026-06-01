@@ -75,7 +75,7 @@ async function handleApi(request: Request, env: Env, url: URL) {
     if (request.method === "GET" && url.pathname === "/api/auth/google/url") return await getOAuthUrl(request, env, "google");
     if (request.method === "GET" && url.pathname === "/api/auth/apple/url") return await getOAuthUrl(request, env, "apple");
     if (request.method === "GET" && url.pathname === "/api/auth/google/start") return await startOAuth(request, env, "google");
-    if (request.method === "GET" && url.pathname === "/api/auth/google/callback") return await finishOAuth(request, env, "google");
+    if (request.method === "GET" && (url.pathname === "/api/auth/google/callback" || url.pathname === "/api/auth/google/callback/v2")) return await finishOAuth(request, env, "google");
     if (request.method === "GET" && url.pathname === "/api/auth/apple/start") return await startOAuth(request, env, "apple");
     if (request.method === "POST" && url.pathname === "/api/auth/apple/callback") return await finishOAuth(request, env, "apple");
 
@@ -143,7 +143,7 @@ async function createOAuthUrl(request: Request, env: Env, provider: "google" | "
     .bind(state, provider, codeVerifier, redirectPath, now.toISOString(), expiresAt)
     .run();
 
-  const redirectUri = `${url.origin}/api/auth/${provider}/callback`;
+  const redirectUri = oauthRedirectUri(url, provider);
   return provider === "google" ? await googleAuthorizeUrl(env, redirectUri, state, codeVerifier) : await appleAuthorizeUrl(env, redirectUri, state, codeVerifier);
 }
 
@@ -167,7 +167,7 @@ async function finishOAuth(request: Request, env: Env, provider: "google" | "app
   if (!stateRow || stateRow.provider !== provider) return json({ error: "OAuth state expired" }, 400);
   await env.DB.prepare("delete from oauth_states where state = ?").bind(state).run();
 
-  const redirectUri = `${url.origin}/api/auth/${provider}/callback`;
+  const redirectUri = `${url.origin}${url.pathname}`;
   const profile = provider === "google" ? await exchangeGoogleCode(env, code, redirectUri, stateRow.code_verifier) : await exchangeAppleCode(env, code, redirectUri, stateRow.code_verifier);
   const userId = await upsertUser(env, provider, profile);
   const token = randomToken();
@@ -302,6 +302,11 @@ async function googleAuthorizeUrl(env: Env, redirectUri: string, state: string, 
   authUrl.searchParams.set("code_challenge_method", "S256");
   authUrl.searchParams.set("prompt", "select_account");
   return authUrl.toString();
+}
+
+function oauthRedirectUri(url: URL, provider: "google" | "apple") {
+  if (provider === "google") return `${url.origin}/api/auth/google/callback/v2`;
+  return `${url.origin}/api/auth/apple/callback`;
 }
 
 async function appleAuthorizeUrl(env: Env, redirectUri: string, state: string, codeVerifier: string) {

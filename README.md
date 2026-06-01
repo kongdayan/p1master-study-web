@@ -82,9 +82,11 @@ wrangler secret put APPLE_PRIVATE_KEY
 OAuth 回调地址：
 
 ```text
-https://exams.hunao.online/api/auth/google/callback
+https://exams.hunao.online/api/auth/google/callback/v2
 https://exams.hunao.online/api/auth/apple/callback
 ```
+
+旧版 Google 回调路径 `/api/auth/google/callback` 仍在 Worker 中保留兼容；新项目或重新配置 OAuth 时请使用 `/api/auth/google/callback/v2`。
 
 ## 内容说明
 
