@@ -86,6 +86,12 @@ https://exams.hunao.online/api/auth/google/callback
 https://exams.hunao.online/api/auth/apple/callback
 ```
 
+Google 登录使用 Google Identity Services popup code flow。Google Cloud Console 中还需要配置 Authorized JavaScript origins：
+
+```text
+https://exams.hunao.online
+```
+
 ## 内容说明
 
 本项目内容定位于 IIQE 试卷一的常见学习范围：风险及保险、法律原则、保险原则、保险公司的主要功能、香港保险业结构、规管架构、职业道德及其他相关问题。考试名称、范围和监管要求可能调整；真实应考前请以官方考试手册与最新监管资料为准。

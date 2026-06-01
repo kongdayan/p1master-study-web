@@ -72,6 +72,8 @@ async function handleApi(request: Request, env: Env, url: URL) {
   try {
     if (request.method === "GET" && url.pathname === "/api/me") return await handleMe(request, env);
     if (request.method === "POST" && url.pathname === "/api/auth/logout") return await handleLogout(request, env);
+    if (request.method === "GET" && url.pathname === "/api/auth/google/popup-config") return await getGooglePopupConfig(request, env);
+    if (request.method === "POST" && url.pathname === "/api/auth/google/popup") return await finishGooglePopupOAuth(request, env);
     if (request.method === "GET" && url.pathname === "/api/auth/google/url") return await getOAuthUrl(request, env, "google");
     if (request.method === "GET" && url.pathname === "/api/auth/apple/url") return await getOAuthUrl(request, env, "apple");
     if (request.method === "GET" && url.pathname === "/api/auth/google/start") return await startOAuth(request, env, "google");
@@ -117,6 +119,57 @@ async function handleLogout(request: Request, env: Env) {
     { ok: true },
     200,
     { "set-cookie": `${sessionCookie}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0` }
+  );
+}
+
+async function getGooglePopupConfig(request: Request, env: Env) {
+  assertProviderConfig(env, "google");
+  const url = new URL(request.url);
+  const state = randomToken();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 10 * 60 * 1000).toISOString();
+  await env.DB.prepare(
+    "insert into oauth_states (state, provider, code_verifier, redirect_path, created_at, expires_at) values (?, ?, ?, ?, ?, ?)"
+  )
+    .bind(state, "google", "", safeReturnPath(url.searchParams.get("returnTo")), now.toISOString(), expiresAt)
+    .run();
+  return json({
+    clientId: env.GOOGLE_CLIENT_ID || "",
+    scope: "openid email profile",
+    state
+  });
+}
+
+async function finishGooglePopupOAuth(request: Request, env: Env) {
+  assertProviderConfig(env, "google");
+  const form = await request.formData();
+  const code = String(form.get("code") || "");
+  const state = String(form.get("state") || "");
+  if (!code || !state) return json({ error: "Google popup response is missing code or state" }, 400);
+
+  const stateRow = await env.DB.prepare(
+    "select provider, redirect_path from oauth_states where state = ? and expires_at > ?"
+  )
+    .bind(state, new Date().toISOString())
+    .first<Pick<OAuthStateRow, "provider" | "redirect_path">>();
+  if (!stateRow || stateRow.provider !== "google") return json({ error: "OAuth state expired" }, 400);
+  await env.DB.prepare("delete from oauth_states where state = ?").bind(state).run();
+
+  const origin = new URL(request.url).origin;
+  const profile = await exchangeGooglePopupCode(env, code, origin);
+  const userId = await upsertUser(env, "google", profile);
+  const token = randomToken();
+  const tokenHash = await sha256Hex(token);
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + sessionMaxAgeSeconds * 1000).toISOString();
+  await env.DB.prepare("insert into sessions (id, user_id, token_hash, created_at, last_seen_at, expires_at) values (?, ?, ?, ?, ?, ?)")
+    .bind(crypto.randomUUID(), userId, tokenHash, now.toISOString(), now.toISOString(), expiresAt)
+    .run();
+
+  return json(
+    { ok: true, redirectPath: stateRow.redirect_path || "/" },
+    200,
+    { "set-cookie": `${sessionCookie}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${sessionMaxAgeSeconds}` }
   );
 }
 
@@ -332,6 +385,23 @@ async function exchangeGoogleCode(env: Env, code: string, redirectUri: string, c
   });
   const token = await response.json<{ id_token?: string; error?: string }>();
   if (!response.ok || !token.id_token) throw new HttpError(token.error || "Google token exchange failed", 400);
+  return parseIdToken(token.id_token, env.GOOGLE_CLIENT_ID || "", ["https://accounts.google.com", "accounts.google.com"]);
+}
+
+async function exchangeGooglePopupCode(env: Env, code: string, redirectUri: string) {
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: env.GOOGLE_CLIENT_ID || "",
+      client_secret: env.GOOGLE_CLIENT_SECRET || "",
+      code,
+      grant_type: "authorization_code",
+      redirect_uri: redirectUri
+    })
+  });
+  const token = await response.json<{ id_token?: string; error?: string; error_description?: string }>();
+  if (!response.ok || !token.id_token) throw new HttpError(token.error_description || token.error || "Google token exchange failed", 400);
   return parseIdToken(token.id_token, env.GOOGLE_CLIENT_ID || "", ["https://accounts.google.com", "accounts.google.com"]);
 }
 

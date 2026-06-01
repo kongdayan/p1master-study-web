@@ -8,6 +8,18 @@ export async function fetchOAuthUrl(provider: "google" | "apple", returnTo: stri
   return fetchJson<{ authUrl: string }>(`/api/auth/${provider}/url?returnTo=${encodeURIComponent(returnTo)}&ts=${Date.now()}`);
 }
 
+export async function fetchGooglePopupConfig(returnTo: string) {
+  return fetchJson<{ clientId: string; scope: string; state: string }>(`/api/auth/google/popup-config?returnTo=${encodeURIComponent(returnTo)}&ts=${Date.now()}`);
+}
+
+export async function completeGooglePopupOAuth(code: string, state: string) {
+  return fetchJson<{ ok: true; redirectPath: string }>("/api/auth/google/popup", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ code, state }).toString()
+  });
+}
+
 export async function completeGoogleOAuth(code: string, state: string) {
   return fetchJson<{ ok: true; redirectPath: string }>("/api/auth/google/complete", {
     method: "POST",
