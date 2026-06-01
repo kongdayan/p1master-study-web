@@ -337,7 +337,7 @@ async function exchangeGoogleCode(env: Env, code: string, redirectUri: string, c
   });
   const token = await response.json<{ id_token?: string; error?: string }>();
   if (!response.ok || !token.id_token) throw new HttpError(token.error || "Google token exchange failed", 400);
-  return parseIdToken(token.id_token, env.GOOGLE_CLIENT_ID || "", "https://accounts.google.com");
+  return parseIdToken(token.id_token, env.GOOGLE_CLIENT_ID || "", ["https://accounts.google.com", "accounts.google.com"]);
 }
 
 async function exchangeAppleCode(env: Env, code: string, redirectUri: string, codeVerifier: string) {
@@ -356,7 +356,7 @@ async function exchangeAppleCode(env: Env, code: string, redirectUri: string, co
   });
   const token = await response.json<{ id_token?: string; error?: string }>();
   if (!response.ok || !token.id_token) throw new HttpError(token.error || "Apple token exchange failed", 400);
-  return parseIdToken(token.id_token, env.APPLE_CLIENT_ID || "", "https://appleid.apple.com");
+  return parseIdToken(token.id_token, env.APPLE_CLIENT_ID || "", ["https://appleid.apple.com"]);
 }
 
 async function upsertUser(env: Env, provider: "google" | "apple", profile: { sub: string; email: string; name: string | null; avatarUrl: string | null }) {
@@ -384,7 +384,7 @@ async function upsertUser(env: Env, provider: "google" | "apple", profile: { sub
   return userId;
 }
 
-function parseIdToken(idToken: string, audience: string, issuer: string) {
+function parseIdToken(idToken: string, audience: string, issuers: string[]) {
   const payload = JSON.parse(new TextDecoder().decode(base64UrlToBytes(idToken.split(".")[1] || ""))) as {
     sub?: string;
     email?: string;
@@ -394,7 +394,7 @@ function parseIdToken(idToken: string, audience: string, issuer: string) {
     iss?: string;
     exp?: number;
   };
-  if (!payload.sub || !payload.email || payload.aud !== audience || payload.iss !== issuer || (payload.exp || 0) * 1000 < Date.now()) {
+  if (!payload.sub || !payload.email || payload.aud !== audience || !payload.iss || !issuers.includes(payload.iss) || (payload.exp || 0) * 1000 < Date.now()) {
     throw new HttpError("Invalid identity token", 400);
   }
   return {
