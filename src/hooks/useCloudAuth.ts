@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchCurrentUser, logoutCloudUser } from "@/services/cloudApi";
+import { fetchCurrentUser, fetchOAuthUrl, logoutCloudUser } from "@/services/cloudApi";
 import { currentAppReturnTo } from "@/lib/routing";
 import type { CloudAuthProviders, CloudUser } from "@/types/cloud";
 
@@ -21,8 +21,9 @@ export function useCloudAuth() {
     }
   }
 
-  function login(provider: "google" | "apple") {
-    window.location.href = `/api/auth/${provider}/start?returnTo=${encodeURIComponent(currentAppReturnTo())}&ts=${Date.now()}`;
+  async function login(provider: "google" | "apple") {
+    const result = await fetchOAuthUrl(provider, currentAppReturnTo());
+    window.location.assign(result.authUrl);
   }
 
   async function logout() {

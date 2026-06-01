@@ -4,6 +4,10 @@ export async function fetchCurrentUser() {
   return fetchJson<{ user: CloudUser | null; providers: CloudAuthProviders }>("/api/me");
 }
 
+export async function fetchOAuthUrl(provider: "google" | "apple", returnTo: string) {
+  return fetchJson<{ authUrl: string }>(`/api/auth/${provider}/url?returnTo=${encodeURIComponent(returnTo)}&ts=${Date.now()}`);
+}
+
 export async function logoutCloudUser() {
   return fetchJson<{ ok: true }>("/api/auth/logout", { method: "POST" });
 }

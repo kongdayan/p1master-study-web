@@ -72,6 +72,8 @@ async function handleApi(request: Request, env: Env, url: URL) {
   try {
     if (request.method === "GET" && url.pathname === "/api/me") return await handleMe(request, env);
     if (request.method === "POST" && url.pathname === "/api/auth/logout") return await handleLogout(request, env);
+    if (request.method === "GET" && url.pathname === "/api/auth/google/url") return await getOAuthUrl(request, env, "google");
+    if (request.method === "GET" && url.pathname === "/api/auth/apple/url") return await getOAuthUrl(request, env, "apple");
     if (request.method === "GET" && url.pathname === "/api/auth/google/start") return await startOAuth(request, env, "google");
     if (request.method === "GET" && url.pathname === "/api/auth/google/callback") return await finishOAuth(request, env, "google");
     if (request.method === "GET" && url.pathname === "/api/auth/apple/start") return await startOAuth(request, env, "apple");
@@ -118,6 +120,16 @@ async function handleLogout(request: Request, env: Env) {
 }
 
 async function startOAuth(request: Request, env: Env, provider: "google" | "apple") {
+  const authUrl = await createOAuthUrl(request, env, provider);
+  return Response.redirect(authUrl, 302);
+}
+
+async function getOAuthUrl(request: Request, env: Env, provider: "google" | "apple") {
+  const authUrl = await createOAuthUrl(request, env, provider);
+  return json({ authUrl });
+}
+
+async function createOAuthUrl(request: Request, env: Env, provider: "google" | "apple") {
   assertProviderConfig(env, provider);
   const url = new URL(request.url);
   const state = randomToken();
@@ -132,8 +144,7 @@ async function startOAuth(request: Request, env: Env, provider: "google" | "appl
     .run();
 
   const redirectUri = `${url.origin}/api/auth/${provider}/callback`;
-  const authUrl = provider === "google" ? await googleAuthorizeUrl(env, redirectUri, state, codeVerifier) : await appleAuthorizeUrl(env, redirectUri, state, codeVerifier);
-  return Response.redirect(authUrl, 302);
+  return provider === "google" ? await googleAuthorizeUrl(env, redirectUri, state, codeVerifier) : await appleAuthorizeUrl(env, redirectUri, state, codeVerifier);
 }
 
 async function finishOAuth(request: Request, env: Env, provider: "google" | "apple") {
