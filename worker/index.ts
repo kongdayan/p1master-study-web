@@ -60,7 +60,10 @@ const sessionMaxAgeSeconds = 60 * 60 * 24 * 30;
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname.startsWith("/api/")) return handleApi(request, env, url);
+    if (url.pathname.startsWith("/api/")) {
+      const response = await handleApi(request, env, url);
+      return withNoStore(response);
+    }
     return env.ASSETS.fetch(request);
   }
 };
@@ -471,6 +474,18 @@ function json<T>(value: T, status = 200, headers?: HeadersInit) {
       "content-type": "application/json; charset=utf-8",
       ...headers
     }
+  });
+}
+
+function withNoStore(response: Response) {
+  const headers = new Headers(response.headers);
+  headers.set("cache-control", "no-store, no-cache, must-revalidate, max-age=0");
+  headers.set("pragma", "no-cache");
+  headers.set("expires", "0");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
   });
 }
 

@@ -22,7 +22,7 @@ export function useCloudAuth() {
   }
 
   function login(provider: "google" | "apple") {
-    window.location.href = `/api/auth/${provider}/start?returnTo=${encodeURIComponent(currentAppReturnTo())}`;
+    window.location.href = `/api/auth/${provider}/start?returnTo=${encodeURIComponent(currentAppReturnTo())}&ts=${Date.now()}`;
   }
 
   async function logout() {
