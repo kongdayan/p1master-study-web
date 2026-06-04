@@ -21,3 +21,107 @@ button,
 input {
   font: inherit;
 }
+
+.question-explanation > * + * {
+  margin-top: 0.65rem;
+}
+
+.question-explanation h1,
+.question-explanation h2,
+.question-explanation h3 {
+  margin-top: 0.85rem;
+  color: #0f172a;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.question-explanation h1 {
+  font-size: 1rem;
+}
+
+.question-explanation h2 {
+  font-size: 0.95rem;
+}
+
+.question-explanation h3 {
+  font-size: 0.9rem;
+}
+
+.question-explanation p {
+  margin: 0;
+}
+
+.question-explanation ul,
+.question-explanation ol {
+  margin: 0.4rem 0 0.4rem 1.25rem;
+  padding: 0;
+}
+
+.question-explanation ul {
+  list-style: disc;
+}
+
+.question-explanation ol {
+  list-style: decimal;
+}
+
+.question-explanation li + li {
+  margin-top: 0.25rem;
+}
+
+.question-explanation strong {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.question-explanation code {
+  border-radius: 0.25rem;
+  background: #e2e8f0;
+  padding: 0.1rem 0.25rem;
+  font-size: 0.85em;
+}
+
+.question-explanation pre {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  background: #0f172a;
+  padding: 0.75rem;
+  color: #e2e8f0;
+}
+
+.question-explanation pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.question-explanation blockquote {
+  border-left: 3px solid #0f766e;
+  padding-left: 0.75rem;
+  color: #475569;
+}
+
+.question-explanation a {
+  color: #0f766e;
+  text-decoration: underline;
+}
+
+.question-explanation table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.question-explanation th,
+.question-explanation td {
+  border: 1px solid #cbd5e1;
+  padding: 0.4rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.question-explanation th {
+  background: #e2e8f0;
+  color: #0f172a;
+  font-weight: 800;
+}

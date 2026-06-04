@@ -1,5 +1,7 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -125,7 +127,11 @@ export function QuestionCard({
               </div>
             </div>
             {explanationOpen && explainError ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">{explainError}</p> : null}
-            {explanationOpen && explanation ? <div className="whitespace-pre-wrap rounded-md bg-slate-50 px-3 py-2 text-sm leading-7 text-slate-700">{explanation}</div> : null}
+            {explanationOpen && explanation ? (
+              <div className="question-explanation rounded-md bg-slate-50 px-3 py-2 text-sm leading-7 text-slate-700">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{explanation}</ReactMarkdown>
+              </div>
+            ) : null}
           </div>
         ) : null}
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
