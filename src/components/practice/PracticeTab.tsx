@@ -70,6 +70,7 @@ export function PracticeTab({
   const currentIndex = modulo(state.index, filteredQuestions.length);
   const currentQuestion = filteredQuestions[currentIndex];
   const currentSavedAnswer = currentQuestion ? progress.answerHistory[currentQuestion.id] : undefined;
+  const visibleSavedAnswer = currentQuestion && !state.wrongOnly && !state.hiddenAnswers[currentQuestion.id] ? currentSavedAnswer : undefined;
 
   const chapterCounts = useMemo(() => questions.reduce<Record<string, number>>((acc, question) => {
     acc[question.chapterId] = (acc[question.chapterId] || 0) + 1;
@@ -104,12 +105,13 @@ export function PracticeTab({
   }
 
   useEffect(() => {
-    if (!currentQuestion || !settings.autoExplainWrong || !settings.llmApiKey || !currentSavedAnswer || currentSavedAnswer.correct) return;
-    const key = `${currentQuestion.id}:${currentSavedAnswer.updatedAt}`;
-    if (autoExplainKeyRef.current === key || explanations[currentQuestion.id]) return;
+    if (!currentQuestion || !settings.autoExplainWrong || !settings.llmApiKey || !state.selected) return;
+    if (state.selected === currentQuestion.answer) return;
+    const key = `${currentQuestion.id}:${state.selected}:${currentSavedAnswer?.updatedAt || ""}`;
+    if (autoExplainKeyRef.current === key) return;
     autoExplainKeyRef.current = key;
-    void requestExplanation(currentQuestion, currentSavedAnswer.selected);
-  }, [currentQuestion?.id, currentSavedAnswer?.updatedAt, settings.autoExplainWrong, settings.llmApiKey]);
+    void requestExplanation(currentQuestion, state.selected);
+  }, [currentQuestion?.id, currentSavedAnswer?.updatedAt, state.selected, settings.autoExplainWrong, settings.llmApiKey]);
 
   function selectChapter(chapterId: string) {
     updatePracticeState({ chapterId, index: 0, selected: null, revealed: false });
@@ -195,7 +197,7 @@ export function PracticeTab({
             placeholder="搜索题干、选项或参考章节，例如 3.6、近因、经纪"
           />
           <label className="flex items-center gap-2 text-sm text-slate-600">
-            <Checkbox checked={state.wrongOnly} onCheckedChange={(value) => updatePracticeState({ wrongOnly: value === true, index: 0 })} />
+            <Checkbox checked={state.wrongOnly} onCheckedChange={(value) => updatePracticeState({ wrongOnly: value === true, index: 0, selected: null, revealed: false })} />
             只看错题本
           </label>
           <div className="flex flex-wrap gap-2">
@@ -232,7 +234,7 @@ export function PracticeTab({
           total={filteredQuestions.length}
           chapterLabel={chapters.find((chapter) => chapter.id === currentQuestion.chapterId)?.shortTitle || `第 ${currentQuestion.chapterId} 章`}
           selected={state.selected}
-          savedAnswer={state.hiddenAnswers[currentQuestion.id] ? undefined : currentSavedAnswer}
+          savedAnswer={visibleSavedAnswer}
           revealed={state.revealed}
           wrong={Boolean(progress.wrongQuestionIds[currentQuestion.id])}
           explanation={explanations[currentQuestion.id] || ""}
@@ -244,7 +246,7 @@ export function PracticeTab({
           onNext={() => navigateByOffset(1)}
           onRandom={navigateRandom}
           onReveal={() => {
-            const showing = state.revealed || state.selected !== null || Boolean(progress.answerHistory[currentQuestion.id] && !state.hiddenAnswers[currentQuestion.id]);
+            const showing = state.revealed || state.selected !== null || Boolean(visibleSavedAnswer);
             if (!showing) markSeen(currentQuestion);
             updatePracticeState({
               selected: null,
@@ -256,7 +258,7 @@ export function PracticeTab({
             });
           }}
           onToggleWrong={() => toggleWrong(currentQuestion.id)}
-          onExplain={() => void requestExplanation(currentQuestion, state.selected ?? currentSavedAnswer?.selected ?? null)}
+          onExplain={() => void requestExplanation(currentQuestion, state.selected ?? visibleSavedAnswer?.selected ?? null)}
         />
       ) : (
         <Card>
