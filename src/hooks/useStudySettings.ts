@@ -5,10 +5,7 @@ import { defaultStudySettings, type StudySettings } from "@/types/settings";
 const settingsKey = "study-settings:v1";
 
 export function useStudySettings() {
-  const [settings, setSettings] = useState<StudySettings>(() => ({
-    ...defaultStudySettings,
-    ...readStorage<Partial<StudySettings>>(settingsKey, {})
-  }));
+  const [settings, setSettings] = useState<StudySettings>(() => normalizeSettings(readStorage<Partial<StudySettings>>(settingsKey, {})));
 
   useEffect(() => {
     writeStorage(settingsKey, settings);
@@ -26,4 +23,13 @@ export function useStudySettings() {
   }
 
   return { settings, updateSettings, resetSettings };
+}
+
+function normalizeSettings(saved: Partial<StudySettings>): StudySettings {
+  const next = {
+    ...defaultStudySettings,
+    ...saved
+  };
+  if (next.llmModel === "deepseek-v4-flash-1m") next.llmModel = "deepseek-v4-flash";
+  return next;
 }

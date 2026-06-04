@@ -9,7 +9,7 @@ export interface StudySettings {
 export const defaultStudySettings: StudySettings = {
   llmBaseUrl: "https://api.deepseek.com/v1/chat/completions",
   llmApiKey: "",
-  llmModel: "deepseek-v4-flash-1m",
+  llmModel: "deepseek-v4-flash",
   autoExplainWrong: false,
   autoRemoveWrongOnCorrect: true
 };
