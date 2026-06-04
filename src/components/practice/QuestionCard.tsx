@@ -111,7 +111,7 @@ export function QuestionCard({
               <div>
                 <h3 className="text-sm font-extrabold text-slate-900">题目解释</h3>
                 <p className="text-xs text-slate-500">
-                  {!settings.llmApiKey ? "请先在配置里填写 API Key。" : explaining ? "正在流式生成解释..." : explanation ? "解释已生成，可展开查看。" : "用你配置的模型解释答案逻辑。"}
+                  {!settings.llmApiKey ? "请先在配置里填写 API Key。" : explaining ? "正在生成 AI 参考解释..." : explanation ? "AI 参考解释已生成，可展开查看。" : "使用 AI 参考解释当前题目，仅供辅助理解。"}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
