@@ -10,6 +10,7 @@ interface AuthPanelProps {
   syncStatus: SyncStatus;
   syncError: string | null;
   lastSyncedAt: string | null;
+  onRetrySync: () => void;
   onLogin: (provider: "google" | "apple") => void;
   onLogout: () => void;
 }
@@ -50,7 +51,7 @@ function syncDetail(status: SyncStatus, lastSyncedAt: string | null) {
   return `${hours} 小时前`;
 }
 
-export function AuthPanel({ user, providers, loading, syncStatus, syncError, lastSyncedAt, onLogin, onLogout }: AuthPanelProps) {
+export function AuthPanel({ user, providers, loading, syncStatus, syncError, lastSyncedAt, onRetrySync, onLogin, onLogout }: AuthPanelProps) {
   if (loading) return <Badge className="justify-center py-2">检查登录中</Badge>;
 
   if (!user) {
@@ -93,6 +94,11 @@ export function AuthPanel({ user, providers, loading, syncStatus, syncError, las
         </div>
         {!user.avatarUrl ? <UserRound className="hidden h-4 w-4 shrink-0 text-slate-400 sm:block" /> : null}
       </div>
+      {syncStatus === "error" ? (
+        <Button size="sm" variant="outline" className="shrink-0 px-2.5" onClick={onRetrySync}>
+          重试
+        </Button>
+      ) : null}
       <Button size="sm" variant="outline" className="shrink-0 px-2.5" onClick={onLogout} title="退出登录">
         <LogOut className="h-4 w-4" />
         <span className="hidden sm:inline">退出</span>

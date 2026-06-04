@@ -218,12 +218,16 @@ function App() {
       <ExamHeader
         exam={data.exam}
         questionCount={data.questions.length}
+        settings={settingsApi.settings}
         user={auth.user}
         providers={auth.providers}
         authLoading={auth.loading}
         syncStatus={cloudSync.status}
         syncError={cloudSync.error}
         lastSyncedAt={cloudSync.lastSyncedAt}
+        onUpdateSettings={settingsApi.updateSettings}
+        onResetSettings={settingsApi.resetSettings}
+        onRetrySync={() => void cloudSync.retry()}
         onLogin={auth.login}
         onLogout={() => void auth.logout()}
       />
@@ -249,17 +253,12 @@ function App() {
               toggleWrong={progressApi.toggleWrong}
               resetProgress={progressApi.resetProgress}
               importProgress={progressApi.importProgress}
-              updateSettings={settingsApi.updateSettings}
-              resetSettings={settingsApi.resetSettings}
               markSeen={progressApi.markSeen}
               onNavigateQuestion={(question, index) => navigatePracticeQuestion(question.numericId, index)}
-              syncStatus={cloudSync.status}
-              syncError={cloudSync.error}
-              onRetrySync={() => void cloudSync.retry()}
             />
           </TabsContent>
           <TabsContent value="outline">
-            <OutlineTab exam={data.exam} chapters={data.chapters} graph={data.knowledge} questions={data.questions} />
+            <OutlineTab chapters={data.chapters} graph={data.knowledge} questions={data.questions} />
           </TabsContent>
           <TabsContent value="map">
             <KnowledgeGraph

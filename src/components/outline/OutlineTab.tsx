@@ -1,15 +1,13 @@
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Chapter, ExamMeta, KnowledgeGraphData, Question } from "@/types/exam";
+import type { Chapter, KnowledgeGraphData, Question } from "@/types/exam";
 
 interface OutlineTabProps {
-  exam: ExamMeta;
   chapters: Chapter[];
   graph: KnowledgeGraphData;
   questions: Question[];
 }
 
-export function OutlineTab({ exam, chapters, graph, questions }: OutlineTabProps) {
+export function OutlineTab({ chapters, graph, questions }: OutlineTabProps) {
   const chapterCounts = questions.reduce<Record<string, number>>((acc, question) => {
     acc[question.chapterId] = (acc[question.chapterId] || 0) + 1;
     return acc;
@@ -17,17 +15,10 @@ export function OutlineTab({ exam, chapters, graph, questions }: OutlineTabProps
 
   return (
     <div className="grid gap-4">
-      <section className="grid gap-3 md:grid-cols-4">
-        <Badge className="justify-center py-2">{exam.passing.questions} 题考试</Badge>
-        <Badge className="justify-center py-2">{exam.passing.durationMinutes} 分钟</Badge>
-        <Badge className="justify-center py-2">{exam.passing.passingScorePercent}% 合格</Badge>
-        <Badge className="justify-center py-2">题库 {questions.length} 题</Badge>
-      </section>
-
       <Card>
         <CardHeader>
           <CardTitle>章节权重与刷题数量</CardTitle>
-          <CardDescription>后续更换考试时，只要替换 JSON 数据包即可复用这套展示。</CardDescription>
+          <CardDescription>按章节查看考试范围、权重和高频复习策略。</CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
