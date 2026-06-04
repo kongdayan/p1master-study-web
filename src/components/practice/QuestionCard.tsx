@@ -1,3 +1,5 @@
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,10 +51,19 @@ export function QuestionCard({
   onToggleWrong,
   onExplain
 }: QuestionCardProps) {
+  const [explanationOpen, setExplanationOpen] = useState(false);
   const effectiveSelected = selected ?? savedAnswer?.selected ?? null;
   const answered = effectiveSelected !== null || revealed;
   const correct = effectiveSelected === question.answer;
   const answerOption = question.options.find((option) => option.letter === question.answer);
+
+  useEffect(() => {
+    setExplanationOpen(false);
+  }, [question.id]);
+
+  useEffect(() => {
+    if (explaining || explanation) setExplanationOpen(true);
+  }, [explaining, explanation]);
 
   return (
     <Card>
@@ -97,14 +108,24 @@ export function QuestionCard({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h3 className="text-sm font-extrabold text-slate-900">题目解释</h3>
-                <p className="text-xs text-slate-500">{!settings.llmApiKey ? "请先在配置里填写 API Key。" : explaining ? "正在流式生成解释..." : "用你配置的模型解释答案逻辑。"}</p>
+                <p className="text-xs text-slate-500">
+                  {!settings.llmApiKey ? "请先在配置里填写 API Key。" : explaining ? "正在流式生成解释..." : explanation ? "解释已生成，可展开查看。" : "用你配置的模型解释答案逻辑。"}
+                </p>
               </div>
-              <Button size="sm" variant="outline" onClick={onExplain} disabled={explaining || !settings.llmApiKey}>
-                {explaining ? "解释中" : explanation ? "重新解释" : "解释本题"}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                {explanation || explaining || explainError ? (
+                  <Button size="sm" variant="ghost" onClick={() => setExplanationOpen((open) => !open)}>
+                    {explanationOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    {explanationOpen ? "收起" : "展开"}
+                  </Button>
+                ) : null}
+                <Button size="sm" variant="outline" onClick={onExplain} disabled={explaining || !settings.llmApiKey}>
+                  {explaining ? "解释中" : explanation ? "重新解释" : "解释本题"}
+                </Button>
+              </div>
             </div>
-            {explainError ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">{explainError}</p> : null}
-            {explanation ? <div className="whitespace-pre-wrap rounded-md bg-slate-50 px-3 py-2 text-sm leading-7 text-slate-700">{explanation}</div> : null}
+            {explanationOpen && explainError ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">{explainError}</p> : null}
+            {explanationOpen && explanation ? <div className="whitespace-pre-wrap rounded-md bg-slate-50 px-3 py-2 text-sm leading-7 text-slate-700">{explanation}</div> : null}
           </div>
         ) : null}
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
