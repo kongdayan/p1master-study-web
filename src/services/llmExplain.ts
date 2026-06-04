@@ -38,10 +38,42 @@ export async function explainQuestion({ question, selected, settings, onToken, s
 
   if (!response.ok || !response.body) {
     const message = await response.text();
-    throw new Error(message || `解释请求失败：${response.status}`);
+    throw new Error(toFriendlyLlmError(response.status, message));
   }
 
   await readSse(response.body, onToken);
+}
+
+function toFriendlyLlmError(status: number, rawMessage: string) {
+  const message = parseProviderErrorMessage(rawMessage);
+  const haystack = `${status} ${message} ${rawMessage}`.toLowerCase();
+
+  if (status === 401 || status === 403 || /authentication|unauthorized|forbidden|api key|invalid key/.test(haystack)) {
+    return "API Key 验证失败，请检查配置中心里的 API Key 是否正确。你可以前往 [DeepSeek API Keys](https://platform.deepseek.com/api_keys) 创建新的 API Key 后填入。";
+  }
+
+  if (status === 429 || /rate limit|quota|insufficient/.test(haystack)) {
+    return "当前 API 调用额度或频率可能受限，请稍后重试，或检查 DeepSeek 账户额度。";
+  }
+
+  if (/model/.test(haystack)) {
+    return "模型名称可能不正确，请检查配置中心里的模型名称和 API URL。";
+  }
+
+  if (/network|timeout/.test(haystack)) {
+    return "AI 解释请求暂时连接不上，请稍后重试。";
+  }
+
+  return `AI 解释请求失败，请检查配置中心里的 API URL、模型名称和 API Key 是否正确。状态码：${status}`;
+}
+
+function parseProviderErrorMessage(rawMessage: string) {
+  try {
+    const parsed = JSON.parse(rawMessage) as { error?: { message?: string }; message?: string };
+    return parsed.error?.message || parsed.message || "";
+  } catch {
+    return rawMessage;
+  }
 }
 
 function buildPrompt(question: Question, selected: ChoiceLetter | null) {

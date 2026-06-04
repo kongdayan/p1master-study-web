@@ -126,7 +126,11 @@ export function QuestionCard({
                 </Button>
               </div>
             </div>
-            {explanationOpen && explainError ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">{explainError}</p> : null}
+            {explanationOpen && explainError ? (
+              <div className="question-explanation rounded-md bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{explainError}</ReactMarkdown>
+              </div>
+            ) : null}
             {explanationOpen && explanation ? (
               <div className="question-explanation rounded-md bg-slate-50 px-3 py-2 text-sm leading-7 text-slate-700">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{explanation}</ReactMarkdown>
