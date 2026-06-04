@@ -1,15 +1,18 @@
-import { Download, FileUp, Trash2 } from "lucide-react";
-import { useRef } from "react";
+import { Download, FileUp, Settings, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { QuestionCard } from "@/components/practice/QuestionCard";
+import { StudySettingsDialog } from "@/components/settings/StudySettingsDialog";
 import { modulo } from "@/lib/utils";
+import { explainQuestion } from "@/services/llmExplain";
 import type { SyncStatus } from "@/types/cloud";
 import type { Chapter, Question } from "@/types/exam";
 import type { StudyProgress } from "@/types/progress";
+import type { StudySettings } from "@/types/settings";
 
 interface PracticeTabProps {
   examId: string;
@@ -17,13 +20,16 @@ interface PracticeTabProps {
   questions: Question[];
   filteredQuestions: Question[];
   progress: StudyProgress;
+  settings: StudySettings;
   stats: { answered: number; correct: number; rate: number; wrong: number };
   updatePracticeState: (next: Partial<StudyProgress["practiceState"]>) => void;
   resetCurrentAnswer: () => void;
-  answerQuestion: (question: Question, selected: Question["answer"]) => void;
+  answerQuestion: (question: Question, selected: Question["answer"], options: { removeWrongOnCorrect: boolean }) => void;
   toggleWrong: (questionId: string) => void;
   resetProgress: () => void;
   importProgress: (progress: StudyProgress) => void;
+  updateSettings: (settings: Partial<StudySettings>) => void;
+  resetSettings: () => void;
   markSeen: (question: Question) => void;
   onNavigateQuestion: (question: Question, index: number) => void;
   syncStatus: SyncStatus;
@@ -37,6 +43,7 @@ export function PracticeTab({
   questions,
   filteredQuestions,
   progress,
+  settings,
   stats,
   updatePracticeState,
   resetCurrentAnswer,
@@ -44,6 +51,8 @@ export function PracticeTab({
   toggleWrong,
   resetProgress,
   importProgress,
+  updateSettings,
+  resetSettings,
   markSeen,
   onNavigateQuestion,
   syncStatus,
@@ -51,14 +60,56 @@ export function PracticeTab({
   onRetrySync
 }: PracticeTabProps) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const explainAbortRef = useRef<AbortController | null>(null);
+  const autoExplainKeyRef = useRef<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [explanations, setExplanations] = useState<Record<string, string>>({});
+  const [explainingId, setExplainingId] = useState<string | null>(null);
+  const [explainError, setExplainError] = useState<string | null>(null);
   const state = progress.practiceState;
   const currentIndex = modulo(state.index, filteredQuestions.length);
   const currentQuestion = filteredQuestions[currentIndex];
+  const currentSavedAnswer = currentQuestion ? progress.answerHistory[currentQuestion.id] : undefined;
 
-  const chapterCounts = questions.reduce<Record<string, number>>((acc, question) => {
+  const chapterCounts = useMemo(() => questions.reduce<Record<string, number>>((acc, question) => {
     acc[question.chapterId] = (acc[question.chapterId] || 0) + 1;
     return acc;
-  }, {});
+  }, {}), [questions]);
+
+  async function requestExplanation(question: Question, selected: Question["answer"] | null) {
+    explainAbortRef.current?.abort();
+    const controller = new AbortController();
+    explainAbortRef.current = controller;
+    setExplainingId(question.id);
+    setExplainError(null);
+    setExplanations((current) => ({ ...current, [question.id]: "" }));
+    try {
+      await explainQuestion({
+        question,
+        selected,
+        settings,
+        signal: controller.signal,
+        onToken: (token) => {
+          setExplanations((current) => ({
+            ...current,
+            [question.id]: `${current[question.id] || ""}${token}`
+          }));
+        }
+      });
+    } catch (cause) {
+      if (!controller.signal.aborted) setExplainError(cause instanceof Error ? cause.message : "解释生成失败");
+    } finally {
+      if (!controller.signal.aborted) setExplainingId(null);
+    }
+  }
+
+  useEffect(() => {
+    if (!currentQuestion || !settings.autoExplainWrong || !settings.llmApiKey || !currentSavedAnswer || currentSavedAnswer.correct) return;
+    const key = `${currentQuestion.id}:${currentSavedAnswer.updatedAt}`;
+    if (autoExplainKeyRef.current === key || explanations[currentQuestion.id]) return;
+    autoExplainKeyRef.current = key;
+    void requestExplanation(currentQuestion, currentSavedAnswer.selected);
+  }, [currentQuestion?.id, currentSavedAnswer?.updatedAt, settings.autoExplainWrong, settings.llmApiKey]);
 
   function selectChapter(chapterId: string) {
     updatePracticeState({ chapterId, index: 0, selected: null, revealed: false });
@@ -148,6 +199,10 @@ export function PracticeTab({
             只看错题本
           </label>
           <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setSettingsOpen(true)}>
+              <Settings className="h-4 w-4" />
+              配置
+            </Button>
             <Button variant="outline" onClick={exportProgress}>
               <Download className="h-4 w-4" />
               导出记录
@@ -177,10 +232,14 @@ export function PracticeTab({
           total={filteredQuestions.length}
           chapterLabel={chapters.find((chapter) => chapter.id === currentQuestion.chapterId)?.shortTitle || `第 ${currentQuestion.chapterId} 章`}
           selected={state.selected}
-          savedAnswer={state.hiddenAnswers[currentQuestion.id] ? undefined : progress.answerHistory[currentQuestion.id]}
+          savedAnswer={state.hiddenAnswers[currentQuestion.id] ? undefined : currentSavedAnswer}
           revealed={state.revealed}
           wrong={Boolean(progress.wrongQuestionIds[currentQuestion.id])}
-          onAnswer={(letter) => answerQuestion(currentQuestion, letter)}
+          explanation={explanations[currentQuestion.id] || ""}
+          explaining={explainingId === currentQuestion.id}
+          explainError={explainError}
+          settings={settings}
+          onAnswer={(letter) => answerQuestion(currentQuestion, letter, { removeWrongOnCorrect: settings.autoRemoveWrongOnCorrect })}
           onPrev={() => navigateByOffset(-1)}
           onNext={() => navigateByOffset(1)}
           onRandom={navigateRandom}
@@ -197,6 +256,7 @@ export function PracticeTab({
             });
           }}
           onToggleWrong={() => toggleWrong(currentQuestion.id)}
+          onExplain={() => void requestExplanation(currentQuestion, state.selected ?? currentSavedAnswer?.selected ?? null)}
         />
       ) : (
         <Card>
@@ -207,6 +267,13 @@ export function PracticeTab({
       <p className="text-xs leading-5 text-slate-500">
         刷题进度、答题记录和错题本会按考试 ID 保存在当前浏览器；换设备时可用导出 / 导入迁移。
       </p>
+      <StudySettingsDialog
+        settings={settings}
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        onSave={updateSettings}
+        onReset={resetSettings}
+      />
     </div>
   );
 }

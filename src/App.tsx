@@ -11,6 +11,7 @@ import { useCloudAuth } from "@/hooks/useCloudAuth";
 import { useCloudSync } from "@/hooks/useCloudSync";
 import { useExamCatalog } from "@/hooks/useExamCatalog";
 import { useExamData } from "@/hooks/useExamData";
+import { useStudySettings } from "@/hooks/useStudySettings";
 import { useStudyProgress } from "@/hooks/useStudyProgress";
 import { appPathname, buildRouteUrl, parseRoute, type AppRoute, type AppView } from "@/lib/routing";
 import { modulo } from "@/lib/utils";
@@ -21,6 +22,7 @@ function App() {
   const [route, setRoute] = useState<AppRoute>(() => parseRoute());
   const catalog = useExamCatalog();
   const { data, error, loading } = useExamData(route.examId);
+  const settingsApi = useStudySettings();
   const progressApi = useStudyProgress(data?.exam.id || route.examId || "catalog", data?.questions || []);
   const auth = useCloudAuth();
   const [oauthCompleting, setOauthCompleting] = useState(() => window.location.pathname === "/api/auth/google/callback");
@@ -239,6 +241,7 @@ function App() {
               questions={data.questions}
               filteredQuestions={progressApi.filteredQuestions}
               progress={progressApi.progress}
+              settings={settingsApi.settings}
               stats={progressApi.stats}
               updatePracticeState={progressApi.updatePracticeState}
               resetCurrentAnswer={progressApi.resetCurrentAnswer}
@@ -246,6 +249,8 @@ function App() {
               toggleWrong={progressApi.toggleWrong}
               resetProgress={progressApi.resetProgress}
               importProgress={progressApi.importProgress}
+              updateSettings={settingsApi.updateSettings}
+              resetSettings={settingsApi.resetSettings}
               markSeen={progressApi.markSeen}
               onNavigateQuestion={(question, index) => navigatePracticeQuestion(question.numericId, index)}
               syncStatus={cloudSync.status}

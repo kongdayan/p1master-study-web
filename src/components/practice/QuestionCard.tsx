@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { ChoiceLetter, Question } from "@/types/exam";
 import type { AnswerRecord } from "@/types/progress";
+import type { StudySettings } from "@/types/settings";
 
 interface QuestionCardProps {
   question: Question;
@@ -14,12 +15,17 @@ interface QuestionCardProps {
   savedAnswer?: AnswerRecord;
   revealed: boolean;
   wrong: boolean;
+  explanation: string;
+  explaining: boolean;
+  explainError: string | null;
+  settings: StudySettings;
   onAnswer: (letter: ChoiceLetter) => void;
   onPrev: () => void;
   onNext: () => void;
   onRandom: () => void;
   onReveal: () => void;
   onToggleWrong: () => void;
+  onExplain: () => void;
 }
 
 export function QuestionCard({
@@ -31,12 +37,17 @@ export function QuestionCard({
   savedAnswer,
   revealed,
   wrong,
+  explanation,
+  explaining,
+  explainError,
+  settings,
   onAnswer,
   onPrev,
   onNext,
   onRandom,
   onReveal,
-  onToggleWrong
+  onToggleWrong,
+  onExplain
 }: QuestionCardProps) {
   const effectiveSelected = selected ?? savedAnswer?.selected ?? null;
   const answered = effectiveSelected !== null || revealed;
@@ -79,6 +90,21 @@ export function QuestionCard({
           <div className="rounded-r-lg border-l-4 border-teal-700 bg-teal-50 px-3 py-2 text-sm leading-6 text-slate-700">
             {effectiveSelected ? (correct ? "答对了。" : `答错了，你选的是 ${effectiveSelected}。`) : "已显示答案。"}
             {" "}正确答案是 {question.answer}：{answerOption?.text}
+          </div>
+        ) : null}
+        {answered ? (
+          <div className="grid gap-2 rounded-lg border border-slate-200 bg-white p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900">题目解释</h3>
+                <p className="text-xs text-slate-500">{!settings.llmApiKey ? "请先在配置里填写 API Key。" : explaining ? "正在流式生成解释..." : "用你配置的模型解释答案逻辑。"}</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={onExplain} disabled={explaining || !settings.llmApiKey}>
+                {explaining ? "解释中" : explanation ? "重新解释" : "解释本题"}
+              </Button>
+            </div>
+            {explainError ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">{explainError}</p> : null}
+            {explanation ? <div className="whitespace-pre-wrap rounded-md bg-slate-50 px-3 py-2 text-sm leading-7 text-slate-700">{explanation}</div> : null}
           </div>
         ) : null}
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">

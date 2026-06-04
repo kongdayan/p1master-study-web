@@ -88,7 +88,7 @@ export function useStudyProgress(examId: string, questions: Question[]) {
     updatePracticeState({ selected: null, revealed: false });
   }
 
-  function answerQuestion(question: Question, selected: ChoiceLetter) {
+  function answerQuestion(question: Question, selected: ChoiceLetter, options: { removeWrongOnCorrect: boolean }) {
     const now = new Date().toISOString();
     const record: AnswerRecord = {
       selected,
@@ -100,8 +100,11 @@ export function useStudyProgress(examId: string, questions: Question[]) {
     };
     setProgress((current) => {
       const wrongQuestionIds = { ...current.wrongQuestionIds };
-      if (record.correct) delete wrongQuestionIds[question.id];
-      else wrongQuestionIds[question.id] = true;
+      if (record.correct) {
+        if (options.removeWrongOnCorrect) delete wrongQuestionIds[question.id];
+      } else {
+        wrongQuestionIds[question.id] = true;
+      }
       const hiddenAnswers = { ...current.practiceState.hiddenAnswers };
       delete hiddenAnswers[question.id];
       return {
@@ -118,7 +121,7 @@ export function useStudyProgress(examId: string, questions: Question[]) {
         syncQueue: appendSyncChange(current.syncQueue, {
           question: question.numericId,
           selected: choiceToSelected(selected),
-          wrong: !record.correct,
+          wrong: Boolean(wrongQuestionIds[question.id]),
           seen: true,
           clientUpdatedAt: now
         }),
