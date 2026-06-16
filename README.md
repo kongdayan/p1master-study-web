@@ -45,7 +45,7 @@ npm run build
 线上地址：
 
 ```text
-https://exams.hunao.online
+https://exams.anserlabs.com
 ```
 
 当前站点使用 Cloudflare Workers 静态资源 + Worker API + D1。静态资源仍由 Vite 构建，登录和云端进度由 `worker/index.ts` 提供。
@@ -54,10 +54,10 @@ https://exams.hunao.online
 
 ```bash
 npm run build
-wrangler deploy --domain exams.hunao.online --domain p1.hunao.online
+wrangler deploy --domain exams.anserlabs.com --domain p1.anserlabs.com
 ```
 
-旧域名 `https://p1.hunao.online` 仍可作为兼容入口。
+旧域名 `https://p1.anserlabs.com` 仍可作为兼容入口。
 
 ## 云端同步配置
 
@@ -82,14 +82,14 @@ wrangler secret put APPLE_PRIVATE_KEY
 OAuth 回调地址：
 
 ```text
-https://exams.hunao.online/api/auth/google/callback
-https://exams.hunao.online/api/auth/apple/callback
+https://exams.anserlabs.com/api/auth/google/callback
+https://exams.anserlabs.com/api/auth/apple/callback
 ```
 
 Google 登录使用 Google Identity Services popup code flow。Google Cloud Console 中还需要配置 Authorized JavaScript origins：
 
 ```text
-https://exams.hunao.online
+https://exams.anserlabs.com
 ```
 
 ## 内容说明
