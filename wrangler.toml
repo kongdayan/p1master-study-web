@@ -10,3 +10,6 @@ not_found_handling = "single-page-application"
 binding = "DB"
 database_name = "p1master-study-web-db"
 database_id = "60a2ae7b-2534-450b-a46b-1c4021b42d4b"
+
+[triggers]
+crons = ["18 3 * * *"]

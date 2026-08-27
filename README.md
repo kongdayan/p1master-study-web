@@ -40,6 +40,17 @@ http://127.0.0.1:5173
 npm run build
 ```
 
+## 质量检查
+
+```bash
+npm run lint          # ESLint 检查
+npm test              # Vitest 单元测试
+npm run build         # 类型检查 + 构建
+npm run check:worker  # Worker 类型检查（@cloudflare/workers-types）
+```
+
+push 到 `main` 或发起 PR 时，GitHub Actions 会自动运行以上全部检查。
+
 ## 部署
 
 线上地址：

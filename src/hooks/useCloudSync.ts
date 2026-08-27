@@ -34,11 +34,18 @@ export function useCloudSync({
   const bootstrappedKeyRef = useRef<string | null>(null);
   const syncingRef = useRef(false);
   const currentQuestionNumberRef = useRef<number | null>(currentQuestionNumber);
+  const bootstrapRef = useRef(bootstrap);
+  const flushQueueRef = useRef(flushQueue);
   const queueKey = useMemo(() => progress.syncQueue.map((change) => `${change.question}:${change.clientUpdatedAt}`).join("|"), [progress.syncQueue]);
 
   useEffect(() => {
     currentQuestionNumberRef.current = currentQuestionNumber;
   }, [currentQuestionNumber]);
+
+  useEffect(() => {
+    bootstrapRef.current = bootstrap;
+    flushQueueRef.current = flushQueue;
+  });
 
   async function bootstrap() {
     if (!user || !questions.length || bootstrappedKeyRef.current === `${user.id}:${examId}`) return;
@@ -98,29 +105,29 @@ export function useCloudSync({
       setLastSyncedAt(null);
       return;
     }
-    void bootstrap();
-  }, [examId, questions.length, user?.id]);
+    void bootstrapRef.current();
+  }, [examId, questions.length, user]);
 
   useEffect(() => {
     if (!user || !queueKey) return;
     if (progress.syncQueue.length >= maxBatchSize) {
-      void flushQueue();
+      void flushQueueRef.current();
       return;
     }
-    const timeout = window.setTimeout(() => void flushQueue(), syncDebounceMs);
+    const timeout = window.setTimeout(() => void flushQueueRef.current(), syncDebounceMs);
     return () => window.clearTimeout(timeout);
-  }, [examId, queueKey, user?.id, progress.syncQueue.length]);
+  }, [examId, queueKey, user, progress.syncQueue.length]);
 
   useEffect(() => {
     const flushOnHidden = () => {
-      if (document.visibilityState === "hidden") void flushQueue();
+      if (document.visibilityState === "hidden") void flushQueueRef.current();
     };
     document.addEventListener("visibilitychange", flushOnHidden);
     return () => document.removeEventListener("visibilitychange", flushOnHidden);
   });
 
   useEffect(() => {
-    const handleOnline = () => void flushQueue();
+    const handleOnline = () => void flushQueueRef.current();
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
   });

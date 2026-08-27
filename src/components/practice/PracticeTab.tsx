@@ -49,6 +49,7 @@ export function PracticeTab({
   const fileRef = useRef<HTMLInputElement>(null);
   const explainAbortRef = useRef<AbortController | null>(null);
   const autoExplainKeyRef = useRef<string | null>(null);
+  const requestExplanationRef = useRef(requestExplanation);
   const [explanations, setExplanations] = useState<Record<string, string>>({});
   const [explainingId, setExplainingId] = useState<string | null>(null);
   const [explainError, setExplainError] = useState<string | null>(null);
@@ -97,13 +98,17 @@ export function PracticeTab({
   }
 
   useEffect(() => {
+    requestExplanationRef.current = requestExplanation;
+  });
+
+  useEffect(() => {
     if (!currentQuestion || !settings.autoExplainWrong || !settings.llmApiKey || !state.selected) return;
     if (state.selected === currentQuestion.answer) return;
     const key = `${currentQuestion.id}:${state.selected}:${currentSavedAnswer?.updatedAt || ""}`;
     if (autoExplainKeyRef.current === key) return;
     autoExplainKeyRef.current = key;
-    void requestExplanation(currentQuestion, state.selected);
-  }, [currentQuestion?.id, currentSavedAnswer?.updatedAt, state.selected, settings.autoExplainWrong, settings.llmApiKey]);
+    void requestExplanationRef.current(currentQuestion, state.selected);
+  }, [currentQuestion, currentSavedAnswer?.updatedAt, state.selected, settings.autoExplainWrong, settings.llmApiKey]);
 
   function selectChapter(chapterId: string) {
     updatePracticeState({ chapterId, index: 0, selected: null, revealed: false });

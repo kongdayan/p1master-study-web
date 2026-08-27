@@ -1,3 +1,4 @@
+import type { D1Database, ExecutionContext, Fetcher, ScheduledController } from "@cloudflare/workers-types";
 import { encodeAnswers, encodeBitset } from "../src/lib/progressCodec";
 import type { CloudAuthProviders, CloudProgressSnapshot, CloudUser, ProgressChange, ProgressPatch, SelectedCode } from "../src/types/cloud";
 
@@ -10,28 +11,6 @@ interface Env {
   APPLE_TEAM_ID?: string;
   APPLE_KEY_ID?: string;
   APPLE_PRIVATE_KEY?: string;
-}
-
-interface Fetcher {
-  fetch(request: Request): Promise<Response>;
-}
-
-interface D1Database {
-  prepare(query: string): D1PreparedStatement;
-  batch<T = unknown>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]>;
-}
-
-interface D1PreparedStatement {
-  bind(...values: unknown[]): D1PreparedStatement;
-  first<T = unknown>(): Promise<T | null>;
-  all<T = unknown>(): Promise<D1Result<T>>;
-  run(): Promise<D1Result>;
-}
-
-interface D1Result<T = unknown> {
-  results?: T[];
-  success: boolean;
-  meta?: unknown;
 }
 
 interface SessionRow {
@@ -65,6 +44,12 @@ export default {
       return withNoStore(response);
     }
     return env.ASSETS.fetch(request);
+  },
+
+  async scheduled(_controller: ScheduledController, env: Env, _ctx: ExecutionContext) {
+    const now = new Date().toISOString();
+    await env.DB.prepare("delete from sessions where expires_at < ?").bind(now).run();
+    await env.DB.prepare("delete from oauth_states where expires_at < ?").bind(now).run();
   }
 };
 
@@ -507,7 +492,7 @@ function configuredProviders(env: Env): CloudAuthProviders {
   };
 }
 
-function validProgressChange(change: ProgressChange) {
+export function validProgressChange(change: ProgressChange) {
   return (
     Number.isInteger(change.question) &&
     change.question > 0 &&
@@ -543,7 +528,7 @@ function readCookie(request: Request, name: string) {
     ?.slice(name.length + 1);
 }
 
-function safeReturnPath(value: string | null) {
+export function safeReturnPath(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/api/")) return "/";
   return value;
 }
