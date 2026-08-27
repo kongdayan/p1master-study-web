@@ -30,6 +30,7 @@ function normalizeSettings(saved: Partial<StudySettings>): StudySettings {
     ...defaultStudySettings,
     ...saved
   };
+  if (next.llmMode !== "openrouter") next.llmMode = "custom";
   if (next.llmModel === "deepseek-v4-flash-1m") next.llmModel = "deepseek-v4-flash";
   return next;
 }

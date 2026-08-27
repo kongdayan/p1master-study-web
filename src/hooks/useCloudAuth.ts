@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { completeGooglePopupOAuth, fetchCurrentUser, fetchGooglePopupConfig, fetchOAuthUrl, logoutCloudUser } from "@/services/cloudApi";
+import { completeGooglePopupOAuth, disconnectOpenRouter as disconnectOpenRouterApi, fetchCurrentUser, fetchGooglePopupConfig, fetchOAuthUrl, logoutCloudUser, startOpenRouterAuth } from "@/services/cloudApi";
 import { currentAppReturnTo } from "@/lib/routing";
 import type { CloudAuthProviders, CloudUser } from "@/types/cloud";
 
@@ -66,7 +66,7 @@ function requestGoogleCode(config: { clientId: string; scope: string; state: str
 
 export function useCloudAuth() {
   const [user, setUser] = useState<CloudUser | null>(null);
-  const [providers, setProviders] = useState<CloudAuthProviders>({ google: false, apple: false });
+  const [providers, setProviders] = useState<CloudAuthProviders>({ google: false, apple: false, openrouter: false });
   const [loading, setLoading] = useState(true);
 
   async function refresh() {
@@ -106,9 +106,19 @@ export function useCloudAuth() {
     setUser(null);
   }
 
+  async function connectOpenRouter() {
+    const result = await startOpenRouterAuth(currentAppReturnTo());
+    window.location.assign(result.authUrl);
+  }
+
+  async function disconnectOpenRouter() {
+    await disconnectOpenRouterApi();
+    await refresh();
+  }
+
   useEffect(() => {
     void refresh();
   }, []);
 
-  return { user, providers, loading, login, logout, refresh };
+  return { user, providers, loading, login, logout, connectOpenRouter, disconnectOpenRouter, refresh };
 }

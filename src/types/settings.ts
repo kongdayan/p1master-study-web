@@ -1,4 +1,7 @@
+export type LlmMode = "openrouter" | "custom";
+
 export interface StudySettings {
+  llmMode: LlmMode;
   llmBaseUrl: string;
   llmApiKey: string;
   llmModel: string;
@@ -7,6 +10,7 @@ export interface StudySettings {
 }
 
 export const defaultStudySettings: StudySettings = {
+  llmMode: "custom",
   llmBaseUrl: "https://api.deepseek.com/v1/chat/completions",
   llmApiKey: "",
   llmModel: "deepseek-v4-flash",

@@ -70,6 +70,10 @@ wrangler deploy --domain exams.anserlabs.com --domain p1.anserlabs.com
 
 旧域名 `https://p1.anserlabs.com` 仍可作为兼容入口。
 
+## 路线图
+
+- [ ] 支持 W3C Prompt API（浏览器内建 AI，`window.ai`）：检测到可用时作为零配置免费解释层，未检测到时引导用户使用 OpenRouter 或自带 API Key
+
 ## 云端同步配置
 
 首次启用云端同步需要创建并迁移 D1：

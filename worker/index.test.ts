@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { safeReturnPath, validProgressChange } from "./index";
+import { buildOpenRouterAuthUrl, safeReturnPath, validProgressChange } from "./index";
 
 describe("validProgressChange", () => {
   it("accepts a complete valid change", () => {
@@ -29,6 +29,18 @@ describe("validProgressChange", () => {
   it("rejects non-string clientUpdatedAt", () => {
     expect(validProgressChange({ question: 1, clientUpdatedAt: 123 })).toBe(false);
     expect(validProgressChange({ question: 1, clientUpdatedAt: undefined })).toBe(false);
+  });
+});
+
+describe("buildOpenRouterAuthUrl", () => {
+  it("builds the authorize URL with PKCE challenge", async () => {
+    const url = new URL(await buildOpenRouterAuthUrl("https://exams.anserlabs.com", "test-verifier"));
+    expect(url.origin + url.pathname).toBe("https://openrouter.ai/auth");
+    expect(url.searchParams.get("callback_url")).toBe("https://exams.anserlabs.com/api/auth/openrouter/callback");
+    expect(url.searchParams.get("code_challenge_method")).toBe("S256");
+    const challenge = url.searchParams.get("code_challenge") || "";
+    expect(challenge.length).toBeGreaterThan(20);
+    expect(challenge).toMatch(/^[A-Za-z0-9_-]+$/);
   });
 });
 

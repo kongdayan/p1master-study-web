@@ -1,22 +1,55 @@
-import { BookOpenCheck, Clock, Sparkles, Target } from "lucide-react";
+import { BookOpenCheck, Clock, Settings, Sparkles, Target } from "lucide-react";
+import { AccountEntry } from "@/components/layout/AccountEntry";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import type { CloudUser, SyncStatus } from "@/types/cloud";
 import type { ExamCatalogData, ExamCatalogItem } from "@/types/exam";
 
 interface ExamCatalogProps {
   catalog: ExamCatalogData;
+  user: CloudUser | null;
+  authLoading: boolean;
+  syncStatus: SyncStatus;
+  syncError: string | null;
+  lastSyncedAt: string | null;
   onOpenExam: (exam: ExamCatalogItem) => void;
+  onOpenSettings: () => void;
 }
 
-export function ExamCatalog({ catalog, onOpenExam }: ExamCatalogProps) {
+export function ExamCatalog({
+  catalog,
+  user,
+  authLoading,
+  syncStatus,
+  syncError,
+  lastSyncedAt,
+  onOpenExam,
+  onOpenSettings
+}: ExamCatalogProps) {
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-8">
-          <div className="flex items-center gap-2 text-teal-700">
-            <Sparkles className="h-5 w-5" />
-            <span className="text-sm font-bold">Exam Hub</span>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2 text-teal-700">
+              <Sparkles className="h-5 w-5" />
+              <span className="text-sm font-bold">Exam Hub</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="outline" onClick={onOpenSettings}>
+                <Settings className="h-4 w-4" />
+                配置中心
+              </Button>
+              <AccountEntry
+                user={user}
+                loading={authLoading}
+                syncStatus={syncStatus}
+                syncError={syncError}
+                lastSyncedAt={lastSyncedAt}
+                onClick={onOpenSettings}
+              />
+            </div>
           </div>
           <h1 className="mt-3 text-3xl font-extrabold text-slate-950 md:text-4xl">{catalog.title}</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">{catalog.description}</p>

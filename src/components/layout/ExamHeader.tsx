@@ -1,48 +1,31 @@
 import { BookOpenCheck, Clock, Settings, Target } from "lucide-react";
-import { useState } from "react";
-import { AuthPanel } from "@/components/layout/AuthPanel";
-import { StudySettingsDialog } from "@/components/settings/StudySettingsDialog";
+import { AccountEntry } from "@/components/layout/AccountEntry";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { CloudAuthProviders, CloudUser, SyncStatus } from "@/types/cloud";
+import type { CloudUser, SyncStatus } from "@/types/cloud";
 import type { ExamMeta } from "@/types/exam";
-import type { StudySettings } from "@/types/settings";
 
 interface ExamHeaderProps {
   exam: ExamMeta;
   questionCount: number;
-  settings: StudySettings;
   user: CloudUser | null;
-  providers: CloudAuthProviders;
   authLoading: boolean;
   syncStatus: SyncStatus;
   syncError: string | null;
   lastSyncedAt: string | null;
-  onUpdateSettings: (settings: Partial<StudySettings>) => void;
-  onResetSettings: () => void;
-  onRetrySync: () => void;
-  onLogin: (provider: "google" | "apple") => void;
-  onLogout: () => void;
+  onOpenSettings: () => void;
 }
 
 export function ExamHeader({
   exam,
   questionCount,
-  settings,
   user,
-  providers,
   authLoading,
   syncStatus,
   syncError,
   lastSyncedAt,
-  onUpdateSettings,
-  onResetSettings,
-  onRetrySync,
-  onLogin,
-  onLogout
+  onOpenSettings
 }: ExamHeaderProps) {
-  const [settingsOpen, setSettingsOpen] = useState(false);
-
   return (
     <header className="border-b border-slate-200 bg-white/95">
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-5">
@@ -69,32 +52,22 @@ export function ExamHeader({
               <Badge className="justify-center py-2">题库 {questionCount} 题</Badge>
             </div>
             <div className="flex w-full flex-wrap items-center gap-2 lg:max-w-[560px] lg:justify-end">
-              <Button size="sm" variant="outline" onClick={() => setSettingsOpen(true)}>
+              <Button size="sm" variant="outline" onClick={onOpenSettings}>
                 <Settings className="h-4 w-4" />
                 配置中心
               </Button>
-              <AuthPanel
+              <AccountEntry
                 user={user}
-                providers={providers}
                 loading={authLoading}
                 syncStatus={syncStatus}
                 syncError={syncError}
                 lastSyncedAt={lastSyncedAt}
-                onRetrySync={onRetrySync}
-                onLogin={onLogin}
-                onLogout={onLogout}
+                onClick={onOpenSettings}
               />
             </div>
           </div>
         </div>
       </div>
-      <StudySettingsDialog
-        settings={settings}
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        onSave={onUpdateSettings}
-        onReset={onResetSettings}
-      />
     </header>
   );
 }

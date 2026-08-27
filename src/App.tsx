@@ -6,6 +6,7 @@ import { FriendlyMissingPage } from "@/components/layout/FriendlyMissingPage";
 import { KnowledgeGraph } from "@/components/knowledge/KnowledgeGraph";
 import { OutlineTab } from "@/components/outline/OutlineTab";
 import { PracticeTab } from "@/components/practice/PracticeTab";
+import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCloudAuth } from "@/hooks/useCloudAuth";
 import { useCloudSync } from "@/hooks/useCloudSync";
@@ -25,6 +26,7 @@ function App() {
   const settingsApi = useStudySettings();
   const progressApi = useStudyProgress(data?.exam.id || route.examId || "catalog", data?.questions || []);
   const auth = useCloudAuth();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [oauthCompleting, setOauthCompleting] = useState(() => window.location.pathname === "/api/auth/google/callback");
   const [oauthError, setOauthError] = useState<string | null>(null);
 
@@ -163,6 +165,28 @@ function App() {
     if (question) progressApi.markSeen(question);
   }
 
+  const settingsDialog = (
+    <SettingsDialog
+      settings={settingsApi.settings}
+      open={settingsOpen}
+      onOpenChange={setSettingsOpen}
+      onSave={settingsApi.updateSettings}
+      onReset={settingsApi.resetSettings}
+      user={auth.user}
+      authLoading={auth.loading}
+      providers={auth.providers}
+      openrouterConnected={auth.providers.openrouter}
+      syncStatus={cloudSync.status}
+      syncError={cloudSync.error}
+      lastSyncedAt={cloudSync.lastSyncedAt}
+      onConnectOpenRouter={() => void auth.connectOpenRouter()}
+      onDisconnectOpenRouter={() => void auth.disconnectOpenRouter()}
+      onLogin={auth.login}
+      onLogout={() => void auth.logout()}
+      onRetrySync={() => void cloudSync.retry()}
+    />
+  );
+
   if (oauthCompleting || oauthError) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 text-slate-700">
@@ -197,7 +221,21 @@ function App() {
       );
     }
     if (catalog.error || !catalog.data) return <FriendlyMissingPage onGoHome={goHome} />;
-    return <ExamCatalog catalog={catalog.data} onOpenExam={openExam} />;
+    return (
+      <>
+        <ExamCatalog
+          catalog={catalog.data}
+          user={auth.user}
+          authLoading={auth.loading}
+          syncStatus={cloudSync.status}
+          syncError={cloudSync.error}
+          lastSyncedAt={cloudSync.lastSyncedAt}
+          onOpenExam={openExam}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
+        {settingsDialog}
+      </>
+    );
   }
 
   if (loading) {
@@ -214,64 +252,61 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <ExamHeader
-        exam={data.exam}
-        questionCount={data.questions.length}
-        settings={settingsApi.settings}
-        user={auth.user}
-        providers={auth.providers}
-        authLoading={auth.loading}
-        syncStatus={cloudSync.status}
-        syncError={cloudSync.error}
-        lastSyncedAt={cloudSync.lastSyncedAt}
-        onUpdateSettings={settingsApi.updateSettings}
-        onResetSettings={settingsApi.resetSettings}
-        onRetrySync={() => void cloudSync.retry()}
-        onLogin={auth.login}
-        onLogout={() => void auth.logout()}
-      />
-      <main className="mx-auto max-w-7xl px-4 py-5">
-        <Tabs value={route.view} onValueChange={(value) => setView(value as AppView)} className="grid gap-4">
-          <TabsList className="w-full justify-start overflow-x-auto md:w-auto">
-            <TabsTrigger value="practice">刷题</TabsTrigger>
-            <TabsTrigger value="outline">大纲</TabsTrigger>
-            <TabsTrigger value="map">知识图谱</TabsTrigger>
-          </TabsList>
-          <TabsContent value="practice">
-            <PracticeTab
-              examId={data.exam.id}
-              chapters={data.chapters}
-              questions={data.questions}
-              filteredQuestions={progressApi.filteredQuestions}
-              progress={progressApi.progress}
-              settings={settingsApi.settings}
-              stats={progressApi.stats}
-              updatePracticeState={progressApi.updatePracticeState}
-              resetCurrentAnswer={progressApi.resetCurrentAnswer}
-              answerQuestion={progressApi.answerQuestion}
-              toggleWrong={progressApi.toggleWrong}
-              resetProgress={progressApi.resetProgress}
-              importProgress={progressApi.importProgress}
-              markSeen={progressApi.markSeen}
-              onNavigateQuestion={(question, index) => navigatePracticeQuestion(question.numericId, index)}
-            />
-          </TabsContent>
-          <TabsContent value="outline">
-            <OutlineTab chapters={data.chapters} graph={data.knowledge} questions={data.questions} />
-          </TabsContent>
-          <TabsContent value="map">
-            <KnowledgeGraph
-              graph={data.knowledge}
-              chapters={data.chapters}
-              checklist={data.checklist}
-              checked={progressApi.progress.checklist}
-              onChecklistChange={progressApi.setChecklistItem}
-            />
-          </TabsContent>
-        </Tabs>
-      </main>
-    </div>
+    <>
+      <div className="min-h-screen bg-slate-50">
+        <ExamHeader
+          exam={data.exam}
+          questionCount={data.questions.length}
+          user={auth.user}
+          authLoading={auth.loading}
+          syncStatus={cloudSync.status}
+          syncError={cloudSync.error}
+          lastSyncedAt={cloudSync.lastSyncedAt}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
+        <main className="mx-auto max-w-7xl px-4 py-5">
+          <Tabs value={route.view} onValueChange={(value) => setView(value as AppView)} className="grid gap-4">
+            <TabsList className="w-full justify-start overflow-x-auto md:w-auto">
+              <TabsTrigger value="practice">刷题</TabsTrigger>
+              <TabsTrigger value="outline">大纲</TabsTrigger>
+              <TabsTrigger value="map">知识图谱</TabsTrigger>
+            </TabsList>
+            <TabsContent value="practice">
+              <PracticeTab
+                examId={data.exam.id}
+                chapters={data.chapters}
+                questions={data.questions}
+                filteredQuestions={progressApi.filteredQuestions}
+                progress={progressApi.progress}
+                settings={settingsApi.settings}
+                stats={progressApi.stats}
+                updatePracticeState={progressApi.updatePracticeState}
+                resetCurrentAnswer={progressApi.resetCurrentAnswer}
+                answerQuestion={progressApi.answerQuestion}
+                toggleWrong={progressApi.toggleWrong}
+                resetProgress={progressApi.resetProgress}
+                importProgress={progressApi.importProgress}
+                markSeen={progressApi.markSeen}
+                onNavigateQuestion={(question, index) => navigatePracticeQuestion(question.numericId, index)}
+              />
+            </TabsContent>
+            <TabsContent value="outline">
+              <OutlineTab chapters={data.chapters} graph={data.knowledge} questions={data.questions} />
+            </TabsContent>
+            <TabsContent value="map">
+              <KnowledgeGraph
+                graph={data.knowledge}
+                chapters={data.chapters}
+                checklist={data.checklist}
+                checked={progressApi.progress.checklist}
+                onChecklistChange={progressApi.setChecklistItem}
+              />
+            </TabsContent>
+          </Tabs>
+        </main>
+      </div>
+      {settingsDialog}
+    </>
   );
 }
 

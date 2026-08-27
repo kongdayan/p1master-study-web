@@ -32,6 +32,14 @@ export async function logoutCloudUser() {
   return fetchJson<{ ok: true }>("/api/auth/logout", { method: "POST" });
 }
 
+export async function startOpenRouterAuth(returnTo: string) {
+  return fetchJson<{ authUrl: string }>(`/api/auth/openrouter/start?returnTo=${encodeURIComponent(returnTo)}&ts=${Date.now()}`);
+}
+
+export async function disconnectOpenRouter() {
+  return fetchJson<{ ok: true }>("/api/auth/openrouter/disconnect", { method: "POST" });
+}
+
 export async function fetchCloudProgress(examId: string) {
   return fetchJson<CloudProgressSnapshot>(`/api/progress/${encodeURIComponent(examId)}`);
 }

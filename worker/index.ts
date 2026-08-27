@@ -18,10 +18,11 @@ interface SessionRow {
   email: string;
   name: string | null;
   avatar_url: string | null;
+  openrouter_key: string | null;
 }
 
 interface OAuthStateRow {
-  provider: "google" | "apple";
+  provider: "google" | "apple" | "openrouter";
   code_verifier: string;
   redirect_path: string;
 }
@@ -66,6 +67,10 @@ async function handleApi(request: Request, env: Env, url: URL) {
     if (request.method === "POST" && url.pathname === "/api/auth/google/complete") return await finishOAuth(request, env, "google", "json");
     if (request.method === "GET" && url.pathname === "/api/auth/apple/start") return await startOAuth(request, env, "apple");
     if (request.method === "POST" && url.pathname === "/api/auth/apple/callback") return await finishOAuth(request, env, "apple");
+    if (request.method === "GET" && url.pathname === "/api/auth/openrouter/start") return await startOpenRouterAuth(request, env);
+    if (request.method === "GET" && url.pathname === "/api/auth/openrouter/callback") return await finishOpenRouterAuth(request, env);
+    if (request.method === "POST" && url.pathname === "/api/auth/openrouter/disconnect") return await handleDisconnectOpenRouter(request, env);
+    if (request.method === "POST" && url.pathname === "/api/llm/explain") return await handleLlmExplain(request, env);
 
     const progressMatch = url.pathname.match(/^\/api\/progress\/([^/]+)(?:\/sync)?$/);
     if (progressMatch && request.method === "GET" && !url.pathname.endsWith("/sync")) {
@@ -91,7 +96,7 @@ async function handleMe(request: Request, env: Env) {
           avatarUrl: session.avatar_url
         }
       : null,
-    providers: configuredProviders(env)
+    providers: { ...configuredProviders(env), openrouter: Boolean(session?.openrouter_key) }
   });
 }
 
@@ -225,6 +230,76 @@ async function finishOAuth(request: Request, env: Env, provider: "google" | "app
   return new Response(null, { status: 302, headers: { location: redirectPath, "set-cookie": cookie } });
 }
 
+async function startOpenRouterAuth(request: Request, env: Env) {
+  await requireSession(request, env);
+  const url = new URL(request.url);
+  const verifier = randomToken();
+  const state = randomToken();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 10 * 60 * 1000).toISOString();
+  await env.DB.prepare(
+    "insert into oauth_states (state, provider, code_verifier, redirect_path, created_at, expires_at) values (?, ?, ?, ?, ?, ?)"
+  )
+    .bind(state, "openrouter", verifier, safeReturnPath(url.searchParams.get("returnTo")), now.toISOString(), expiresAt)
+    .run();
+
+  return json({ authUrl: await buildOpenRouterAuthUrl(url.origin, verifier) });
+}
+
+// OpenRouter's callback carries no state parameter, so we match the newest unused
+// verifier. Fine for a single-user tool; concurrent in-flight flows may collide.
+async function finishOpenRouterAuth(request: Request, env: Env) {
+  const session = await requireSession(request, env);
+  const code = new URL(request.url).searchParams.get("code");
+  if (!code) return json({ error: "OpenRouter callback is missing code" }, 400);
+
+  const stateRow = await env.DB.prepare(
+    "select code_verifier, redirect_path from oauth_states where provider = 'openrouter' and expires_at > ? order by created_at desc limit 1"
+  )
+    .bind(new Date().toISOString())
+    .first<Pick<OAuthStateRow, "code_verifier" | "redirect_path">>();
+  if (!stateRow) return json({ error: "OpenRouter authorization state expired" }, 400);
+  await env.DB.prepare("delete from oauth_states where provider = 'openrouter'").run();
+
+  const exchange = await fetch("https://openrouter.ai/api/v1/auth/keys", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ code, code_verifier: stateRow.code_verifier, code_challenge_method: "S256" })
+  });
+  const result = await exchange.json<{ key?: string; error?: string }>();
+  if (!exchange.ok || !result.key) throw new HttpError(result.error || "OpenRouter key exchange failed", 400);
+
+  await env.DB.prepare("update users set openrouter_key = ? where id = ?").bind(result.key, session.user_id).run();
+  return Response.redirect(stateRow.redirect_path || "/", 302);
+}
+
+async function handleDisconnectOpenRouter(request: Request, env: Env) {
+  const session = await requireSession(request, env);
+  await env.DB.prepare("update users set openrouter_key = null where id = ?").bind(session.user_id).run();
+  return json({ ok: true });
+}
+
+async function handleLlmExplain(request: Request, env: Env) {
+  const session = await requireSession(request, env);
+  const key = await env.DB.prepare("select openrouter_key from users where id = ?")
+    .bind(session.user_id)
+    .first<{ openrouter_key: string | null }>();
+  if (!key?.openrouter_key) throw new HttpError("OpenRouter not connected", 400);
+
+  const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${key.openrouter_key}`,
+      "content-type": "application/json"
+    },
+    body: await request.text()
+  });
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: { "content-type": upstream.headers.get("content-type") || "application/json" }
+  });
+}
+
 async function handleGetProgress(request: Request, env: Env, examId: string) {
   const session = await requireSession(request, env);
   return json(await buildSnapshot(env, session.user_id, examId));
@@ -311,7 +386,7 @@ async function readSession(request: Request, env: Env) {
   if (!token) return null;
   const tokenHash = await sha256Hex(token);
   const row = await env.DB.prepare(
-    `select sessions.user_id, users.email, users.name, users.avatar_url
+    `select sessions.user_id, users.email, users.name, users.avatar_url, users.openrouter_key
      from sessions join users on users.id = sessions.user_id
      where sessions.token_hash = ? and sessions.expires_at > ?`
   )
@@ -488,7 +563,8 @@ function assertProviderConfig(env: Env, provider: "google" | "apple") {
 function configuredProviders(env: Env): CloudAuthProviders {
   return {
     google: Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
-    apple: Boolean(env.APPLE_CLIENT_ID && env.APPLE_TEAM_ID && env.APPLE_KEY_ID && env.APPLE_PRIVATE_KEY)
+    apple: Boolean(env.APPLE_CLIENT_ID && env.APPLE_TEAM_ID && env.APPLE_KEY_ID && env.APPLE_PRIVATE_KEY),
+    openrouter: true
   };
 }
 
@@ -499,6 +575,14 @@ export function validProgressChange(change: ProgressChange) {
     (!("selected" in change) || change.selected === undefined || (Number.isInteger(change.selected) && change.selected >= 0 && change.selected <= 5)) &&
     typeof change.clientUpdatedAt === "string"
   );
+}
+
+export async function buildOpenRouterAuthUrl(origin: string, verifier: string) {
+  const authUrl = new URL("https://openrouter.ai/auth");
+  authUrl.searchParams.set("callback_url", `${origin}/api/auth/openrouter/callback`);
+  authUrl.searchParams.set("code_challenge", await codeChallenge(verifier));
+  authUrl.searchParams.set("code_challenge_method", "S256");
+  return authUrl.toString();
 }
 
 async function codeChallenge(verifier: string) {

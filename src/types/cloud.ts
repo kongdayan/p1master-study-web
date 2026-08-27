@@ -10,6 +10,7 @@ export interface CloudUser {
 export interface CloudAuthProviders {
   google: boolean;
   apple: boolean;
+  openrouter: boolean;
 }
 
 export interface CloudProgressSnapshot {
